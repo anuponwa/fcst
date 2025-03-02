@@ -37,6 +37,8 @@ def ensemble_forecast(
     pd.Series[float]: Future time horizon depending on the series' end date and `periods`
     """
 
+    models = models.copy()
+
     set_diff = set(model_names).difference(set(models.keys()))
 
     if len(set_diff) > 0:

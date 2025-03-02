@@ -52,6 +52,8 @@ def backtest_evaluate(
 
     if len(series) == 0:
         raise ValueError("`series` must have more than 0 length for back-testing.")
+    
+    models = models.copy()
 
     if len(series) < min_data_points:
         return {"MeanDefault": 1.}

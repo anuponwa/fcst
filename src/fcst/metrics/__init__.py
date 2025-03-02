@@ -5,6 +5,6 @@ metrics sub-package
 Provides forecasting metrics.
 """
 
-from .metric_functions import mape
+from ._metrics import mape
 
 __all__ = ["mape"]

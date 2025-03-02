@@ -1,5 +1,4 @@
 import pandas as pd
-from sktime.forecasting.base import BaseForecaster
 
 from fcst.horizon import get_future_forecast_horizon
 from ..models import MeanDefaultForecaster
@@ -7,7 +6,7 @@ from ..common.types import Forecaster
 
 
 def forecast(
-    model: BaseForecaster,
+    model: Forecaster,
     series: pd.Series,
     periods: int,
     forecast_col: str = "forecast",
