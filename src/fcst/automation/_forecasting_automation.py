@@ -76,7 +76,7 @@ def run_forecasting_automation(
     models: ModelDict = base_models,
     parallel: bool = True,
     n_jobs: int = -1,
-) -> list[str, pd.Series]:
+) -> list[Tuple[str, pd.Series]]:
     """Runs and returns forecast results for each ID
 
     This automatically runs the pipeline.
@@ -153,4 +153,22 @@ def run_forecasting_automation(
         results = [_fcst(id_, series) for id_, series in each_series]
 
 
-    return results
+    def _filter_none_results(results_list: list[Tuple[str, pd.Series]]):
+        return list(filter(lambda x: x is not None, results_list))
+    
+
+    def _get_df_from_each_result(result: Tuple[str, pd.Series]):
+        id_ = result[0]
+        res_series = result[1]
+
+        df_results = pd.DataFrame(res_series)
+        df_results["id"] = id_
+
+        return df_results
+    
+    df_forecasting_results_filtered = _filter_none_results(results)
+    df_forecast_results = pd.concat(
+        map(_get_df_from_each_result, df_forecasting_results_filtered)
+    )
+
+    return df_forecast_results
