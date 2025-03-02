@@ -1,6 +1,6 @@
 [project]
 name = "fcst"
-version = "0.0.1"
+version = "0.1.0"
 description = "Forecasting utilities, time-series preprocessing, rolling back-test and ensemble forecasting from model selection"
 readme = "README.md"
 authors = [
@@ -12,6 +12,29 @@ dependencies = [
     "sktime>=0.36.0",
     "statsmodels>=0.14.4",
 ]
+license = {file = "LICENSE"}
+
+classifiers = [
+    # Project maturity
+    "Development Status :: 4 - Beta",
+    # Intended audience
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    # Topics (domain of your package)
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    # License (match your chosen license)
+    "License :: OSI Approved :: MIT License",
+    # Supported programming languages and Python versions
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",  # General Python 3 support
+    "Programming Language :: Python :: 3.12",
+    # Operating systems
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/anuponwa/fcst"
 
 [build-system]
 requires = ["hatchling"]
