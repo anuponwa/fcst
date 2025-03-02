@@ -10,23 +10,39 @@ uv add fcst
 
 ## Features
 This package provides you with these sub-modules
-1. automation
+1. **automation**
+
     This automatically runs back-test, select the best models, and forecast for you.
     You can customise whether or not to run in parallel, how many top models to select, etc.
-2. forecasting
+
+2. **forecasting**
+
     This provides you with the basic functionality of `fit()` and `predict()`, given that you pass in the model.
-3. evaluation
+
+3. **evaluation**
+
     This provides you with back-test and model selection functionalities.
-4. preprocessing
+
+4. **preprocessing**
+
     This allows you to prepare your dataframes, preprocess the time-series data, fill in the missing dates automatically.
-5. horizon
+
+5. **horizon**
+
     This is an API for dealing with future horizon from `sktime`. But in some modules, it will also do this automatically.
-6. models
+
+6. **models**
+
     Gives you the base models for you to work with. Provides you with the basic models, default (fallback) and zero predictor.
-7. metrics
+
+7. **metrics**
+
     Our own implementation of forecasting performance metrics.
-8. common
+
+8. **common**
+
     Other common functionalities, e.g., types.
+
 
 ## Usage
 
