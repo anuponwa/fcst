@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from typing import Tuple, overload
+
 import pandas as pd
 
 from .dataframe import prepare_forecasting_df

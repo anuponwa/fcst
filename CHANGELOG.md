@@ -1,5 +1,18 @@
 # Change log
 
+## 0.4.0
+* Change the `run_forecasting_automation()` function behaviour
+* Now this function runs the raw DataFrame and handles data preparation automatically
+* It also aligns with the `prepare_timeseries()` function and handles time-series generator well
+* Add parameters to the function
+* Change function name to be internal use only
+
+**Breaking changes**
+
+* Function name changes
+* Re-arrage/add/remove parameters in functions
+* Return values are changed
+
 ## 0.3.0
 * Add preprocessing functionalities
 * Add `prepare_timeseries()` function to automate time-series preparation
