@@ -1,34 +1,58 @@
+import warnings
+from typing import Tuple, overload
+
 import pandas as pd
 from joblib import Parallel, delayed
-from typing import Tuple
-import warnings
 
-from ..preprocessing.timeseries import get_each_timeseries
-from ..forecasting.ensemble import ensemble_forecast
+from ..common.types import ModelDict
 from ..evaluation.model_evaluation import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
-from ..common.types import ModelDict
+from ..forecasting.ensemble import ensemble_forecast
 from ..models import base_models
+from ..preprocessing.timeseries import get_each_timeseries
 
 
-def _forecasting_pipeline(
-    id_: str,
+@overload
+def run_forecasting_pipeline(
     series: pd.Series,
-    models: ModelDict,
     backtest_periods: int,
     eval_periods: int,
     top_n: int,
     forecasting_periods: int,
+    models: ModelDict = base_models,
+    id_: str = "",
+    return_backtest_results: bool = False,
+) -> Tuple[str, pd.Series]: ...
+
+
+@overload
+def run_forecasting_pipeline(
+    series: pd.Series,
+    backtest_periods: int,
+    eval_periods: int,
+    top_n: int,
+    forecasting_periods: int,
+    models: ModelDict = base_models,
+    id_: str = "",
+    return_backtest_results: bool = True,
+) -> Tuple[str, pd.Series, pd.DataFrame]: ...
+
+
+def run_forecasting_pipeline(
+    series: pd.Series,
+    backtest_periods: int,
+    eval_periods: int,
+    top_n: int,
+    forecasting_periods: int,
+    models: ModelDict = base_models,
+    id_: str = "",
+    return_backtest_results: bool = False,
 ) -> Tuple[str, pd.Series]:
     """Performs model selection and ensemble forecast for a single time-series
 
     Parameters
     ----------
-        id_ (str): ID identifying the series
-
         series (pd.Series): Time series to forecast
-
-        models: (ModelDict): A dictionary of models to use in forecasting
 
         backtest_periods (int): Number of periods to back-test
 
@@ -38,9 +62,17 @@ def _forecasting_pipeline(
 
         forecasting_periods (int): Forecasting periods
 
+        models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
+
+        id_ (str): ID identifying the series (Default = "")
+
+        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
+
     Returns
     -------
-        Tuple[str, pd.Series]: ID and the resulting forecasted series
+        Tuple[str, pd.Series]: ID and the resulting forecasted series (when return_backtest_results = False)
+
+        Tuple[str, pd.Series, pd.DataFrame]: ID and the resulting forecasted series with the back-testing raw results (when return_backtest_results = True)
     """
 
     try:
@@ -49,19 +81,60 @@ def _forecasting_pipeline(
             models,
             backtest_periods=backtest_periods,
             eval_periods=eval_periods,
+            return_results=return_backtest_results,
         )
+
+        if return_backtest_results:
+            model_results, df_backtest_results = model_results[0], model_results[1]
 
         models_list = select_best_models(model_results=model_results, top_n=top_n)
 
-        return id_, ensemble_forecast(
+        forecast_results = ensemble_forecast(
             models=models,
             model_names=models_list,
             series=series,
             periods=forecasting_periods,
         )
 
+        if return_backtest_results:
+            return id_, forecast_results, df_backtest_results
+
+        return id_, forecast_results
+
     except Exception as e:
         print("Unexpected error occurred for ID:", id_, e)
+
+@overload
+def run_forecasting_automation(
+    df_forecasting: pd.DataFrame,
+    value_col: str,
+    data_period_date: pd.Period,
+    backtest_periods: int,
+    eval_periods: int,
+    top_n: int,
+    forecasting_periods: int,
+    id_col: str = "id",
+    models: ModelDict = base_models,
+    return_backtest_results: bool = False,
+    parallel: bool = True,
+    n_jobs: int = -1,
+) -> pd.DataFrame: ...
+
+@overload
+def run_forecasting_automation(
+    df_forecasting: pd.DataFrame,
+    value_col: str,
+    data_period_date: pd.Period,
+    backtest_periods: int,
+    eval_periods: int,
+    top_n: int,
+    forecasting_periods: int,
+    id_col: str = "id",
+    models: ModelDict = base_models,
+    return_backtest_results: bool = False,
+    parallel: bool = True,
+    n_jobs: int = -1,
+) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
 
 
 def run_forecasting_automation(
@@ -74,17 +147,18 @@ def run_forecasting_automation(
     forecasting_periods: int,
     id_col: str = "id",
     models: ModelDict = base_models,
+    return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
-) -> list[Tuple[str, pd.Series]]:
+) -> pd.DataFrame:
     """Runs and returns forecast results for each ID
 
     This automatically runs the pipeline.
     The process assumes you already have the `df_forecasting`
     The index must be datetime or period index, use `prepare_forecasting_df()` function.
     The dataframe must have an `id_col` to distinguish different time-series.
-    
-    The steps consist of:
+
+    For each ID, the steps consist of:
     1. Tries to rolling back-test
     2. Select the best model(s) for a particular time-series ID
     3. Ensemble forecast using the best model(s)
@@ -100,8 +174,6 @@ def run_forecasting_automation(
 
         date_period_date (pd.Period): Ending date for data to use for training
 
-        models: (ModelDict): A dictionary of models to use in forecasting
-
         backtest_periods (int): Number of periods to back-test
 
         eval_periods (int): Number of periods to evaluate in each rolling back-test
@@ -112,13 +184,19 @@ def run_forecasting_automation(
 
         id_col (str): ID column name to distinguish between series
 
+        models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
+
+        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
+
         parallel (bool): Whether or not to utilise parallisation (Default is True)
 
         n_jobs (int): For parallel only, the number of jobs (Default = -1)
 
     Returns
     -------
-        list[str, pd.Series]: A list containing the ID and the ensemble forecast results
+        pd.DataFrame: The ensemble forecast DataFrame (when `return_backtest_results` = False)
+
+        Tuple[pd.DataFrame, pd.DataFrame]: The ensemble forecast DataFrame and the back-testing raw results (when `return_backtest_results` = True)
     """
 
     models = models.copy()
@@ -127,14 +205,15 @@ def run_forecasting_automation(
         with warnings.catch_warnings():
             # Suppress all warnings from inside this function
             warnings.simplefilter("ignore")
-            return _forecasting_pipeline(
-                id_,
-                series,
-                models,  # Constant
-                backtest_periods,  # Constant
-                eval_periods,  # Constant
-                top_n,  # Constant
-                forecasting_periods,  # Constant
+            return run_forecasting_pipeline(
+                series=series,
+                backtest_periods=backtest_periods,  # Constant
+                eval_periods=eval_periods,  # Constant
+                top_n=top_n,  # Constant
+                forecasting_periods=forecasting_periods,  # Constant
+                models=models,  # Constant
+                id_=id_,
+                return_backtest_results=return_backtest_results,
             )
 
     each_series = get_each_timeseries(
@@ -152,12 +231,10 @@ def run_forecasting_automation(
     else:
         results = [_fcst(id_, series) for id_, series in each_series]
 
-
     def _filter_none_results(results_list: list[Tuple[str, pd.Series]]):
         return list(filter(lambda x: x is not None, results_list))
-    
 
-    def _get_df_from_each_result(result: Tuple[str, pd.Series]):
+    def _get_df_forecasting_from_each_result(result: Tuple[str, pd.Series]):
         id_ = result[0]
         res_series = result[1]
 
@@ -165,10 +242,24 @@ def run_forecasting_automation(
         df_results["id"] = id_
 
         return df_results
-    
-    df_forecasting_results_filtered = _filter_none_results(results)
+
+    def _get_df_backtest_from_each_result(result: Tuple[str, pd.Series, pd.DataFrame]):
+        id_ = result[0]
+        df_raw = result[2]
+
+        df_raw["id"] = id_
+
+        return df_raw
+
+    results_filtered = _filter_none_results(results)
     df_forecast_results = pd.concat(
-        map(_get_df_from_each_result, df_forecasting_results_filtered)
+        map(_get_df_forecasting_from_each_result, results_filtered)
     )
+
+    if return_backtest_results:
+        df_backtest_results = pd.concat(
+            map(_get_df_backtest_from_each_result, results_filtered)
+        )
+        return df_forecast_results, df_backtest_results
 
     return df_forecast_results
