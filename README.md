@@ -172,7 +172,7 @@ We define our own as it handles when the forecast or actual values are 0.
 Our `mape()` function also has `symmetric` flag to calculate the sMAPE.
 
 
-## Horizon
+### Horizon
 
 If you want to utilise the forecast horizons or get some future dates, this sub-module provides the basic functionalities.
 And this is the base of `forecasting` and `evaluation` functions.
