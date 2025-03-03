@@ -22,7 +22,7 @@ def run_forecasting_pipeline(
     models: ModelDict = base_models,
     id_: str = "",
     return_backtest_results: bool = False,
-) -> Tuple[str, pd.Series]: ...
+) -> Tuple[str, pd.DataFrame]: ...
 
 
 @overload
@@ -35,7 +35,7 @@ def run_forecasting_pipeline(
     models: ModelDict = base_models,
     id_: str = "",
     return_backtest_results: bool = True,
-) -> Tuple[str, pd.Series, pd.DataFrame]: ...
+) -> Tuple[str, pd.DataFrame, pd.DataFrame]: ...
 
 
 def run_forecasting_pipeline(
@@ -47,7 +47,7 @@ def run_forecasting_pipeline(
     models: ModelDict = base_models,
     id_: str = "",
     return_backtest_results: bool = False,
-) -> Tuple[str, pd.Series]:
+) -> Tuple[str, pd.DataFrame]:
     """Performs model selection and ensemble forecast for a single time-series
 
     Parameters
@@ -96,13 +96,17 @@ def run_forecasting_pipeline(
             periods=forecasting_periods,
         )
 
-        if return_backtest_results:
-            return id_, forecast_results, df_backtest_results
+        df_forecast_results = pd.DataFrame(forecast_results)
+        df_forecast_results["selected_models"] = "|".join(models_list)
 
-        return id_, forecast_results
+        if return_backtest_results:
+            return id_, df_forecast_results, df_backtest_results
+
+        return id_, df_forecast_results
 
     except Exception as e:
         print("Unexpected error occurred for ID:", id_, e)
+
 
 @overload
 def run_forecasting_automation(
@@ -119,6 +123,7 @@ def run_forecasting_automation(
     parallel: bool = True,
     n_jobs: int = -1,
 ) -> pd.DataFrame: ...
+
 
 @overload
 def run_forecasting_automation(
@@ -236,9 +241,8 @@ def run_forecasting_automation(
 
     def _get_df_forecasting_from_each_result(result: Tuple[str, pd.Series]):
         id_ = result[0]
-        res_series = result[1]
+        df_results = result[1]
 
-        df_results = pd.DataFrame(res_series)
         df_results["id"] = id_
 
         return df_results
