@@ -75,7 +75,7 @@ def backtest_evaluate(
     Returns
     -------
         ModelResults: A dictionary reporting the average error of each model (when `return_results` = False)
-        
+
         Tuple[ModelResults, pd.DataFrame]: The results dictionary along with the rolling back-test in each period of each model (when `return_results` = True)
     """
 
@@ -105,8 +105,10 @@ def backtest_evaluate(
         eval_results = []
         try:  # Try backtesting for the model
             for backtest_series in get_backtest_periods(series, backtest_periods):
+                backtest_data_date = backtest_series.index.max()
                 test_output = forecast(model, backtest_series, periods=eval_periods)
                 df_eval = pd.concat([test_output, true_series], axis=1, join="inner")
+                df_eval["backtest_data_date"] = backtest_data_date
                 df_eval["model_name"] = model_name
                 eval_results.append(df_eval)
 
