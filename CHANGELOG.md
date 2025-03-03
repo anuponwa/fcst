@@ -1,5 +1,15 @@
 # Change log
 
+## 0.3.0
+* Add preprocessing functionalities
+* Add `prepare_timeseries()` function to automate time-series preparation
+* `id_cols`, `id_col` can be `None` to treat the whole DataFrame as a single series
+
+**Breaking changes**
+
+* Function names change
+* Rearrange parameters
+
 ## 0.2.0
 * Add functionalities for returning back the back-testing raw results
 * Add selected models in the forecasting automation and pipeline
