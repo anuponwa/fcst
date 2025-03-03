@@ -9,7 +9,7 @@ from ..evaluation.model_evaluation import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import ensemble_forecast
 from ..models import base_models
-from ..preprocessing.timeseries import get_each_timeseries
+from ..preprocessing.timeseries import extract_timeseries
 
 
 @overload
@@ -53,6 +53,9 @@ def run_forecasting_pipeline(
     Parameters
     ----------
         series (pd.Series): Time series to forecast
+            The series must be preprocessed. The index is time period index.
+            The missing dates must be filled.
+            The easiest way is to use `extract_timeseries()` function from `preprocessing`.
 
         backtest_periods (int): Number of periods to back-test
 
@@ -221,7 +224,7 @@ def run_forecasting_automation(
                 return_backtest_results=return_backtest_results,
             )
 
-    each_series = get_each_timeseries(
+    each_series = extract_timeseries(
         df_forecasting,
         value_col=value_col,
         data_period_date=data_period_date,
