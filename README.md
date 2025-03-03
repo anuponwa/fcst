@@ -66,13 +66,13 @@ df_forecasting = prepare_forecasting_df(
 
 df_forecasting_results = run_forecasting_automation(
     df_forecasting,
-    value_col=net_amount,
+    value_col="net_amount",
     data_period_date=data_period_date,
-    models=base_models,
-    backtest_periods=5,
+    backtest_periods=3,
     eval_periods=2,
     top_n=2,
-    forecasting_periods=3,
+    forecasting_periods=2,
+    return_backtest_results=True,
     parallel=True,
 )
 
