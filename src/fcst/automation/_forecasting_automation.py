@@ -111,6 +111,19 @@ def run_forecasting_pipeline(
         print("Unexpected error occurred for ID:", id_, e)
 
 
+# df_raw: pd.DataFrame,
+# date_col: str,
+# value_col: str,
+# data_period_date: pd.Period,
+# id_cols: list[str] | None = None,
+# min_cap: int | None = 0,
+# freq: str = "M",
+# id_join_char: str = "_",
+
+# TODO: Change forecasting automation to run from df_raw
+# TODO: Remove forecasting pipeline as df_raw can be series
+
+
 @overload
 def run_forecasting_automation(
     df_forecasting: pd.DataFrame,
