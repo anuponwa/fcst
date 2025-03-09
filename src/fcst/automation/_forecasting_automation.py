@@ -274,17 +274,25 @@ def run_forecasting_automation(
     def _filter_none_results(results_list: list[Tuple[str, pd.Series]]):
         return list(filter(lambda x: x[1] is not None, results_list))
 
-    def _get_df_forecasting_from_each_result(result: Tuple[str, pd.Series]):
+    def _get_df_forecasting_from_each_result(
+        result: Tuple[str, pd.DataFrame | Tuple[pd.Series, pd.DataFrame]],
+    ):
         id_ = result[0]
-        df_results = result[1]
+
+        if not return_backtest_results:
+            df_results = result[1]
+        else:
+            df_results = result[1][0]
 
         df_results["id"] = id_
 
         return df_results
 
-    def _get_df_backtest_from_each_result(result: Tuple[str, pd.Series, pd.DataFrame]):
+    def _get_df_backtest_from_each_result(
+        result: Tuple[str, Tuple[pd.DataFrame, pd.DataFrame]],
+    ):
         id_ = result[0]
-        df_raw = result[2]
+        df_raw = result[1][1]
 
         df_raw["id"] = id_
 

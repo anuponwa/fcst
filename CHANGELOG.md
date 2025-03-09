@@ -1,5 +1,8 @@
 # Change log
 
+## 0.4.1
+* Bug fix in `run_forecasting_automation()` when `return_backtest_results=True`
+
 ## 0.4.0
 * Change the `run_forecasting_automation()` function behaviour
 * Now this function runs the raw DataFrame and handles data preparation automatically
