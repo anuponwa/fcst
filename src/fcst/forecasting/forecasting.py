@@ -1,7 +1,7 @@
 import pandas as pd
 
 from fcst.horizon import get_future_forecast_horizon
-from ..models import MeanDefaultForecaster
+from ..models._models import MeanDefaultForecaster
 from ..common.types import Forecaster
 
 

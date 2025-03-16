@@ -1,5 +1,8 @@
 # Change log
 
+## 0.5.1
+* Fix error in `forecasting` module where it couldn't import internal default `MeanDefaultForecaster`
+
 ## 0.5.0
 * Add AutoTS model wrapper, in case you want to use pre-defined models from AutoTS package
 * Add models in `models`. Now you can import `all_models`, `fast_models`, `base_models`.

@@ -1,6 +1,6 @@
 [project]
 name = "fcst"
-version = "0.5.0"
+version = "0.5.1"
 description = "Forecasting utilities, time-series preprocessing, rolling back-test and ensemble forecasting from model selection"
 readme = "README.md"
 authors = [
