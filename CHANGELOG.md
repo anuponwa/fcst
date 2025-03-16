@@ -1,14 +1,14 @@
 # Change log
 
 ## 0.5.2
-* Fix import error in `automation` module. `base_models` has been moved to `model_list`.
+* Fix import error in `automation` module. `base_models` has been moved to `model_list`
 
 ## 0.5.1
 * Fix error in `forecasting` module where it couldn't import internal default `MeanDefaultForecaster`
 
 ## 0.5.0
 * Add AutoTS model wrapper, in case you want to use pre-defined models from AutoTS package
-* Add models in `models`. Now you can import `all_models`, `fast_models`, `base_models`.
+* Add models in `models`. Now you can import `all_models`, `fast_models`, `base_models`
 
 **Breaking changes**
 
