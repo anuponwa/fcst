@@ -1,0 +1,128 @@
+from autots.models.basics import (
+    FFT,
+    BallTreeMultivariateMotif,
+    BallTreeRegressionMotif,
+    MetricMotif,
+    SeasonalityMotif,
+    SectionalMotif,
+)
+from autots.models.cassandra import Cassandra
+from autots.models.sklearn import (
+    MultivariateRegression,
+    UnivariateRegression,
+    WindowRegression,
+)
+from autots.models.statsmodels import ARDL, ETS, GLS
+from sktime.forecasting.auto_reg import AutoREG
+from sktime.forecasting.ets import AutoETS
+from sktime.forecasting.fbprophet import Prophet
+from sktime.forecasting.naive import NaiveForecaster
+from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
+from sktime.forecasting.theta import ThetaForecaster
+from sktime.forecasting.var import VAR
+
+from ..common.types import ModelDict
+from ._models import MeanDefaultForecaster, ZeroForecaster
+from .autots import AutoTSWrapper
+
+base_models: ModelDict = {
+    "AutoETS": AutoETS(auto=True),
+    "Theta": ThetaForecaster(deseasonalize=False),
+    "ThetaSeason": ThetaForecaster(sp=12),
+    "AutoREG": AutoREG(lags=3, trend="n"),
+    "AutoREGTrend": AutoREG(lags=3, trend="c"),
+    "AutoRegL12": AutoREG(lags=12, trend="n"),
+    "AutoREGTrendL12": AutoREG(lags=12),
+    "VARn": VAR(trend="n"),
+    "VARc": VAR(),
+    "VARct": VAR(trend="ct"),
+    "Naive": NaiveForecaster(strategy="last"),
+    "Naive3mths": NaiveForecaster(strategy="mean", window_length=3),
+    "Naive6mths": NaiveForecaster(strategy="mean", window_length=6),
+    "Mean": NaiveForecaster(strategy="mean"),
+    "MeanDefault": MeanDefaultForecaster(window=3),
+    "Zero": ZeroForecaster(),
+}
+
+slow_models = {
+    "AutoArima": StatsForecastAutoARIMA(sp=12),
+    "Prophet": Prophet(),
+}
+
+autots_models = {
+    "BallTreeRegressionMotif": AutoTSWrapper(BallTreeRegressionMotif()),
+    "BallTreeMultivariateMotif": AutoTSWrapper(BallTreeMultivariateMotif()),
+    "Cassandra": AutoTSWrapper(Cassandra()),
+    "MetricMotif": AutoTSWrapper(MetricMotif()),
+    "SeasonalityMotif": AutoTSWrapper(SeasonalityMotif()),
+    "SectionalMotif": AutoTSWrapper(SectionalMotif()),
+    "FFT": AutoTSWrapper(FFT()),
+    "UnivariateRegression": AutoTSWrapper(UnivariateRegression()),
+    "MultivariateRegression": AutoTSWrapper(MultivariateRegression()),
+    "WindowRegression": AutoTSWrapper(WindowRegression(forecast_length=7)),
+    "GLS": AutoTSWrapper(GLS()),
+    "ARDL": AutoTSWrapper(ARDL()),
+    "ETS_a": AutoTSWrapper(
+        ETS(
+            trend="additive",
+            seasonal=False,
+            damped_trend=False,
+        )
+    ),
+    "ETS_m": AutoTSWrapper(
+        ETS(
+            trend="multiplicative",
+            seasonal=False,
+            damped_trend=False,
+        )
+    ),
+    "ETS_ad": AutoTSWrapper(
+        ETS(
+            trend="additive",
+            seasonal=False,
+            damped_trend=True,
+        )
+    ),
+    "ETS_md": AutoTSWrapper(
+        ETS(
+            trend="multiplicative",
+            seasonal=False,
+            damped_trend=True,
+        )
+    ),
+    "ETS_as": AutoTSWrapper(
+        ETS(
+            trend="additive",
+            seasonal=True,
+            seasonal_periods=12,
+            damped_trend=False,
+        )
+    ),
+    "ETS_ms": AutoTSWrapper(
+        ETS(
+            trend="multiplicative",
+            seasonal=True,
+            seasonal_periods=12,
+            damped_trend=False,
+        )
+    ),
+    "ETS_asd": AutoTSWrapper(
+        ETS(
+            trend="additive",
+            seasonal=True,
+            seasonal_periods=12,
+            damped_trend=True,
+        )
+    ),
+    "ETS_msd": AutoTSWrapper(
+        ETS(
+            trend="multiplicative",
+            seasonal=True,
+            seasonal_periods=12,
+            damped_trend=True,
+        )
+    ),
+}
+
+fast_models = {**base_models, **autots_models}
+all_models = {**base_models, **autots_models, **slow_models}

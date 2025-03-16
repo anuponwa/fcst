@@ -1,5 +1,14 @@
 # Change log
 
+## 0.5.0
+* Add AutoTS model wrapper, in case you want to use pre-defined models from AutoTS package
+* Add models in `models`. Now you can import `all_models`, `fast_models`, `base_models`.
+
+**Breaking changes**
+
+* Dependencies
+* Model imports
+
 ## 0.4.1
 * Bug fix in `run_forecasting_automation()` when `return_backtest_results=True`
 
