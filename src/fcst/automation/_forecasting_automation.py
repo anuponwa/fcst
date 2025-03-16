@@ -9,7 +9,7 @@ from ..common.types import ModelDict
 from ..evaluation.model_evaluation import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import ensemble_forecast
-from ..models import base_models
+from ..models.model_list import base_models
 from ..preprocessing import prepare_timeseries
 
 

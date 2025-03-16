@@ -1,5 +1,8 @@
 # Change log
 
+## 0.5.2
+* Fix import error in `automation` module. `base_models` has been moved to `model_list`.
+
 ## 0.5.1
 * Fix error in `forecasting` module where it couldn't import internal default `MeanDefaultForecaster`
 
