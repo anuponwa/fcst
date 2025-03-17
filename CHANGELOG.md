@@ -1,5 +1,8 @@
 # Change log
 
+## 0.5.4
+* Add reduce recursive models using `Ridge` and `GradientBoosting` from `sklearn` in `model_list`
+
 ## 0.5.3
 * Add models in `model_list`
 

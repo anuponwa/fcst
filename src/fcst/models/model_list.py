@@ -13,7 +13,10 @@ from autots.models.sklearn import (
     WindowRegression,
 )
 from autots.models.statsmodels import ARDL, ETS, GLS
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import Ridge
 from sktime.forecasting.auto_reg import AutoREG
+from sktime.forecasting.compose import make_reduction
 from sktime.forecasting.ets import AutoETS
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.naive import NaiveForecaster
@@ -43,6 +46,22 @@ base_models: ModelDict = {
     "Naive": NaiveForecaster(strategy="last"),
     "Naive3mths": NaiveForecaster(strategy="mean", window_length=3),
     "Naive6mths": NaiveForecaster(strategy="mean", window_length=6),
+    "RidgeReduceL1": make_reduction(Ridge(), strategy="recursive", window_length=1),
+    "RidgeReduceL3": make_reduction(Ridge(), strategy="recursive", window_length=3),
+    "RidgeReduceL6": make_reduction(Ridge(), strategy="recursive", window_length=6),
+    "RidgeReduceL9": make_reduction(Ridge(), strategy="recursive", window_length=9),
+    "GradientBoostingReduceL1": make_reduction(
+        GradientBoostingRegressor(), strategy="recursive", window_length=1
+    ),
+    "GradientBoostingReduceL3": make_reduction(
+        GradientBoostingRegressor(), strategy="recursive", window_length=3
+    ),
+    "GradientBoostingReduceL6": make_reduction(
+        GradientBoostingRegressor(), strategy="recursive", window_length=6
+    ),
+    "GradientBoostingReduceL9": make_reduction(
+        GradientBoostingRegressor(), strategy="recursive", window_length=9
+    ),
     "Mean": NaiveForecaster(strategy="mean"),
     "MeanDefault": MeanDefaultForecaster(window=3),
     "Zero": ZeroForecaster(),
