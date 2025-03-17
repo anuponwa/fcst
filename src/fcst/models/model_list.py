@@ -19,7 +19,7 @@ from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.naive import NaiveForecaster
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
 from sktime.forecasting.theta import ThetaForecaster
-from sktime.forecasting.var import VAR
+from sktime.forecasting.var_reduce import VARReduce
 
 from ..common.types import ModelDict
 from ._models import MeanDefaultForecaster, ZeroForecaster
@@ -33,9 +33,13 @@ base_models: ModelDict = {
     "AutoREGTrend": AutoREG(lags=3, trend="c"),
     "AutoRegL12": AutoREG(lags=12, trend="n"),
     "AutoREGTrendL12": AutoREG(lags=12),
-    "VARn": VAR(trend="n"),
-    "VARc": VAR(),
-    "VARct": VAR(trend="ct"),
+    # "VARn": VAR(trend="n"),
+    # "VARc": VAR(),
+    # "VARct": VAR(trend="ct"),
+    "VARReduceL1": VARReduce(lags=1),
+    "VARReduceL3": VARReduce(lags=3),
+    "VARReduceL6": VARReduce(lags=6),
+    "VARReduceL12": VARReduce(lags=12),
     "Naive": NaiveForecaster(strategy="last"),
     "Naive3mths": NaiveForecaster(strategy="mean", window_length=3),
     "Naive6mths": NaiveForecaster(strategy="mean", window_length=6),
@@ -48,6 +52,7 @@ slow_models = {
     "AutoArima": StatsForecastAutoARIMA(sp=12),
     "Prophet": Prophet(),
 }
+
 
 autots_models = {
     "BallTreeRegressionMotif": AutoTSWrapper(BallTreeRegressionMotif()),
@@ -62,6 +67,18 @@ autots_models = {
     "WindowRegression": AutoTSWrapper(WindowRegression(forecast_length=7)),
     "GLS": AutoTSWrapper(GLS()),
     "ARDL": AutoTSWrapper(ARDL()),
+    "ARDL_L3_Tn": AutoTSWrapper(ARDL(lags=3, trend="n")),
+    "ARDL_L3_Tc": AutoTSWrapper(ARDL(lags=3, trend="c")),
+    "ARDL_L3_Tt": AutoTSWrapper(ARDL(lags=3, trend="t")),
+    "ARDL_L3_Tct": AutoTSWrapper(ARDL(lags=3, trend="ct")),
+    "ARDL_L6_Tn": AutoTSWrapper(ARDL(lags=6, trend="n")),
+    "ARDL_L6_Tc": AutoTSWrapper(ARDL(lags=6, trend="c")),
+    "ARDL_L6_Tt": AutoTSWrapper(ARDL(lags=6, trend="t")),
+    "ARDL_L6_Tct": AutoTSWrapper(ARDL(lags=6, trend="ct")),
+    "ARDL_L12_Tn": AutoTSWrapper(ARDL(lags=12, trend="n")),
+    "ARDL_L12_Tc": AutoTSWrapper(ARDL(lags=12, trend="c")),
+    "ARDL_L12_Tt": AutoTSWrapper(ARDL(lags=12, trend="t")),
+    "ARDL_L12_Tct": AutoTSWrapper(ARDL(lags=12, trend="ct")),
     "ETS_a": AutoTSWrapper(
         ETS(
             trend="additive",
