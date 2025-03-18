@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Tuple, overload
+from typing import Tuple, overload, Literal
 
 import pandas as pd
 
@@ -28,6 +28,7 @@ def backtest_evaluate(
     eval_periods: int = 2,
     min_data_points: int = 8,
     return_results: bool = False,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> ModelResults: ...
 
 
@@ -39,6 +40,7 @@ def backtest_evaluate(
     eval_periods: int = 2,
     min_data_points: int = 8,
     return_results: bool = True,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> Tuple[ModelResults, pd.DataFrame]: ...
 
 
@@ -49,6 +51,7 @@ def backtest_evaluate(
     eval_periods: int = 2,
     min_data_points: int = 8,
     return_results: bool = False,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> ModelResults:
     """Rolling back-test the series with multiple BaseForecaster models
 
@@ -67,10 +70,13 @@ def backtest_evaluate(
         backtest_periods (int): Number of periods to back-test (Default is 3)
 
         eval_periods (int): Number of periods to evaluate in each rolling back-test (Default is 2)
+            If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
 
         min_data_points (int): Minimum data points in the series to perform back-testing
 
-        return_logs (bool): Whether or not to return the back-testing raw results (Default is False)
+        return_results (bool): Whether or not to return the back-testing raw results (Default is False)
+
+        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
 
     Returns
     -------
@@ -81,6 +87,9 @@ def backtest_evaluate(
 
     if len(series) == 0:
         raise ValueError("`series` must have more than 0 length for back-testing.")
+
+    if eval_method not in ("one-time", "rolling"):
+        raise ValueError("`eval_method` must be either 'one-time' or 'rolling'.")
 
     models = models.copy()
 
@@ -101,15 +110,56 @@ def backtest_evaluate(
 
     all_eval = []
 
+    def _get_eval_df(
+        backtest_series: pd.Series,
+        true_series: pd.Series,
+        model,
+        model_name,
+        eval_periods: int,
+    ):
+        backtest_data_date = backtest_series.index.max()
+        test_output = forecast(model, backtest_series, periods=eval_periods)
+        df_eval = pd.concat([test_output, true_series], axis=1, join="inner")
+        df_eval["backtest_data_date"] = backtest_data_date
+        df_eval["model_name"] = model_name
+        return df_eval
+
     for model_name, model in models.items():
         eval_results = []
         try:  # Try backtesting for the model
-            for backtest_series in get_backtest_periods(series, backtest_periods):
-                backtest_data_date = backtest_series.index.max()
-                test_output = forecast(model, backtest_series, periods=eval_periods)
-                df_eval = pd.concat([test_output, true_series], axis=1, join="inner")
-                df_eval["backtest_data_date"] = backtest_data_date
-                df_eval["model_name"] = model_name
+            if eval_method == "rolling":
+                for backtest_series in get_backtest_periods(series, backtest_periods):
+                    # backtest_data_date = backtest_series.index.max()
+                    # test_output = forecast(model, backtest_series, periods=eval_periods)
+                    # df_eval = pd.concat(
+                    #     [test_output, true_series], axis=1, join="inner"
+                    # )
+                    # df_eval["backtest_data_date"] = backtest_data_date
+                    # df_eval["model_name"] = model_name
+
+                    df_eval = _get_eval_df(
+                        backtest_series=backtest_series,
+                        true_series=true_series,
+                        model=model,
+                        model_name=model_name,
+                        eval_periods=eval_periods,
+                    )
+                    eval_results.append(df_eval)
+
+            elif eval_method == "one-time":
+                _data_end_date = series.index.max()
+                backtest_series = series.loc[
+                    series.index <= _data_end_date - backtest_periods
+                ]
+                
+                df_eval = _get_eval_df(
+                    backtest_series=backtest_series,
+                    true_series=true_series,
+                    model=model,
+                    model_name=model_name,
+                    eval_periods=backtest_periods,  # Use backtest periods instead
+                )
+                
                 eval_results.append(df_eval)
 
         except Exception:  # Skip the failed model
