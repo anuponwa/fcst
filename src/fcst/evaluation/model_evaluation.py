@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Tuple, overload, Literal
+from typing import Literal, Tuple, overload
 
 import pandas as pd
 

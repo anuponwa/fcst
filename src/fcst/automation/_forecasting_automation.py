@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable
-from typing import Tuple, overload
+from typing import Literal, Tuple, overload
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -22,6 +22,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = False,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> pd.DataFrame: ...
 
 
@@ -34,6 +35,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = True,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
 
 
@@ -45,6 +47,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = False,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> Tuple[str, pd.DataFrame]:
     """Performs model selection and ensemble forecast for a single time-series
 
@@ -58,6 +61,7 @@ def _forecasting_pipeline(
         backtest_periods (int): Number of periods to back-test
 
         eval_periods (int): Number of periods to evaluate in each rolling back-test
+            If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
 
         top_n (int): Top N models to return
 
@@ -65,7 +69,9 @@ def _forecasting_pipeline(
 
         models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
 
-        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
+        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
+
+        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
 
     Returns
     -------
@@ -84,6 +90,7 @@ def _forecasting_pipeline(
                 backtest_periods=backtest_periods,
                 eval_periods=eval_periods,
                 return_results=return_backtest_results,
+                eval_method=eval_method,
             )
 
             if return_backtest_results:
@@ -125,6 +132,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -146,6 +154,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
     return_backtest_results: bool = True,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -166,6 +175,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
+    eval_method: Literal["rolling", "one-time"] = "rolling",
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -195,6 +205,7 @@ def run_forecasting_automation(
         backtest_periods (int): Number of periods to back-test
 
         eval_periods (int): Number of periods to evaluate in each rolling back-test
+            If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
 
         top_n (int): Top N models to return
 
@@ -202,7 +213,7 @@ def run_forecasting_automation(
 
         id_cols (list[str] | None): A list containing the column names to create a unique time-series ID (Default is None)
             If None, the whole dataframe is treated as a single time-series
-            If a list of columns is poassed in, a new "id" index will be created
+            If a list of columns is passed in, a new "id" index will be created
 
         id_join_char (str): A character to join multiple ID columns (Default = "_")
 
@@ -214,6 +225,8 @@ def run_forecasting_automation(
         freq (str): Frequency to resample and forecast (Default = "M")
 
         models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
+
+        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
 
@@ -241,7 +254,8 @@ def run_forecasting_automation(
                 top_n=top_n,  # Constant
                 forecasting_periods=forecasting_periods,  # Constant
                 models=models,  # Constant
-                return_backtest_results=return_backtest_results,
+                return_backtest_results=return_backtest_results,  # Constant
+                eval_method=eval_method,  # Constant
             )
 
     timeseries: pd.Series | Iterable[Tuple[str, pd.Series]] = prepare_timeseries(

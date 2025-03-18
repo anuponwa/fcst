@@ -57,7 +57,7 @@ def prepare_timeseries(
 
         id_cols (list[str] | None): A list containing the column names to create a unique time-series ID (Default is None)
             If None, the whole dataframe is treated as a single time-series
-            If a list of columns is poassed in, a new "id" index will be created
+            If a list of columns is passed in, a new "id" index will be created
 
         min_cap (int | None): Minimum value to cap before forecast
             If set, the value is used to set the minimum.

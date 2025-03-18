@@ -1,5 +1,11 @@
 # Change log
 
+## 0.6.0
+* Add backtest evaluation method: `eval_method` parameter in backtest and automation functions
+
+**Breaking changes**
+* Add/re-arrange function arguments
+
 ## 0.5.4
 * Add reduce recursive models using `Ridge` and `GradientBoosting` from `sklearn` in `model_list`
 
