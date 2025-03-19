@@ -58,3 +58,33 @@ class ZeroForecaster(Forecaster):
         return pd.Series(
             self.pred_val, index=self.fh.to_absolute_index(cutoff=self.cutoff)
         )
+
+
+class EMA:
+    "Exponential Moving Average"
+
+    def __init__(self, span: int = 3):
+        self.span = span
+        self.fh = None
+
+    def fit(self, y: pd.Series, X=None, fh: ForecastingHorizon = None):
+        if fh is not None:
+            self.fh = fh
+
+        self.y = y
+        self.cutoff = y.index.max()
+
+        return self
+
+    def predict(self, fh: ForecastingHorizon = None, X=None):
+        if self.fh is None and fh is None:
+            raise ValueError("`fh` must be passed in either in `fit()` or `predict()`")
+
+        if fh is not None:
+            self.fh = fh
+
+        self.pred_val = self.y.ewm(span=self.span, min_periods=1).mean().iloc[-1]
+
+        return pd.Series(
+            self.pred_val, index=self.fh.to_absolute_index(cutoff=self.cutoff)
+        )

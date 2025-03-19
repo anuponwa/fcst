@@ -25,7 +25,7 @@ from sktime.forecasting.theta import ThetaForecaster
 from sktime.forecasting.var_reduce import VARReduce
 
 from ..common.types import ModelDict
-from ._models import MeanDefaultForecaster, ZeroForecaster
+from ._models import MeanDefaultForecaster, ZeroForecaster, EMA
 from .autots import AutoTSWrapper
 
 base_models: ModelDict = {
@@ -64,6 +64,9 @@ base_models: ModelDict = {
     ),
     "Mean": NaiveForecaster(strategy="mean"),
     "MeanDefault": MeanDefaultForecaster(window=3),
+    "EMA_3": EMA(span=3),
+    "EMA_6": EMA(span=6),
+    "EMA_9": EMA(span=9),
     "Zero": ZeroForecaster(),
 }
 

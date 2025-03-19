@@ -1,5 +1,8 @@
 # Change log
 
+## 0.6.1
+* Add `EMA` in `model_list`
+
 ## 0.6.0
 * Add backtest evaluation method: `eval_method` parameter in backtest and automation functions
 
