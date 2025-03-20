@@ -1,5 +1,11 @@
 # Change log
 
+## 0.7.0
+* Re-design the back-test functions
+
+**Breaking changes**
+* Backtesting related functions and automation function is changed to support a new and more flexible way of back-testing
+
 ## 0.6.1
 * Add `EMA` in `model_list`
 

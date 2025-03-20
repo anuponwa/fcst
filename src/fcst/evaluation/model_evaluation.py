@@ -10,14 +10,53 @@ from ..forecasting.forecasting import forecast
 
 
 def get_backtest_periods(
-    series: pd.Series, backtest_periods: int
+    series: pd.Series,
+    backtest_periods: int,
+    eval_periods: int,
+    keep_eval_fixed: bool = False,
 ) -> Iterable[pd.Series]:
-    """Generates each time series for back-test"""
+    """Generates each time series for back-test training splits
+
+    Parameters
+    ----------
+        series (pd.Series): Time-series with PeriodIndex as index
+            The series must be resampled and missing values have been filled
+
+        backtest_periods (int): The number of rolling back-test periods
+
+        eval_periods (int): The number of evaluation periods in each rolling
+
+        keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
+
+    Returns
+    -------
+        Iterable[pd.Series]: Iterable of training time-series for rolling back-testing
+    """
 
     data_end_date = series.index.max()
 
-    for i in range(1, backtest_periods + 1):
-        yield series.loc[series.index <= data_end_date - i]
+    # Determine the first training end date
+    # If eval_periods > backtest: use eval_periods as the test periods
+    # otherwise, use the backtest_periods
+
+    # If keep_eval_fixed, minus further to take into account the backtest and eval periods
+    if keep_eval_fixed:
+        buffer_periods = eval_periods + (backtest_periods - 1)
+    else:
+        buffer_periods = (
+            eval_periods if eval_periods > backtest_periods else backtest_periods
+        )
+
+    first_train_end = data_end_date - buffer_periods
+
+    # Number of rolling times
+    for i in range(backtest_periods):
+        train_end = first_train_end + i
+
+        if train_end <= series.index.min():
+            break  # Stop if not enough training data
+
+        yield series.loc[series.index <= train_end]
 
 
 @overload
@@ -26,9 +65,9 @@ def backtest_evaluate(
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
+    keep_eval_fixed: bool = False,
     min_data_points: int = 8,
     return_results: bool = False,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> ModelResults: ...
 
 
@@ -38,9 +77,9 @@ def backtest_evaluate(
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
+    keep_eval_fixed: bool = False,
     min_data_points: int = 8,
     return_results: bool = True,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> Tuple[ModelResults, pd.DataFrame]: ...
 
 
@@ -49,9 +88,9 @@ def backtest_evaluate(
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
+    keep_eval_fixed: bool = False,
     min_data_points: int = 8,
     return_results: bool = False,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
 ) -> ModelResults:
     """Rolling back-test the series with multiple BaseForecaster models
 
@@ -67,16 +106,15 @@ def backtest_evaluate(
             The keys are model names and
             the values are the forecaster models from `sktime`.
 
-        backtest_periods (int): Number of periods to back-test (Default is 3)
+        backtest_periods (int): The number of rolling back-test periods (Default is 5)
 
-        eval_periods (int): Number of periods to evaluate in each rolling back-test (Default is 2)
-            If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
+        eval_periods (int): The number of evaluation periods in each rolling (Default is 2)
+
+        keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
 
         min_data_points (int): Minimum data points in the series to perform back-testing
 
         return_results (bool): Whether or not to return the back-testing raw results (Default is False)
-
-        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
 
     Returns
     -------
@@ -87,9 +125,6 @@ def backtest_evaluate(
 
     if len(series) == 0:
         raise ValueError("`series` must have more than 0 length for back-testing.")
-
-    if eval_method not in ("one-time", "rolling"):
-        raise ValueError("`eval_method` must be either 'one-time' or 'rolling'.")
 
     models = models.copy()
 
@@ -127,39 +162,16 @@ def backtest_evaluate(
     for model_name, model in models.items():
         eval_results = []
         try:  # Try backtesting for the model
-            if eval_method == "rolling":
-                for backtest_series in get_backtest_periods(series, backtest_periods):
-                    # backtest_data_date = backtest_series.index.max()
-                    # test_output = forecast(model, backtest_series, periods=eval_periods)
-                    # df_eval = pd.concat(
-                    #     [test_output, true_series], axis=1, join="inner"
-                    # )
-                    # df_eval["backtest_data_date"] = backtest_data_date
-                    # df_eval["model_name"] = model_name
-
-                    df_eval = _get_eval_df(
-                        backtest_series=backtest_series,
-                        true_series=true_series,
-                        model=model,
-                        model_name=model_name,
-                        eval_periods=eval_periods,
-                    )
-                    eval_results.append(df_eval)
-
-            elif eval_method == "one-time":
-                _data_end_date = series.index.max()
-                backtest_series = series.loc[
-                    series.index <= _data_end_date - backtest_periods
-                ]
-                
+            for backtest_series in get_backtest_periods(
+                series, backtest_periods, eval_periods, keep_eval_fixed
+            ):
                 df_eval = _get_eval_df(
                     backtest_series=backtest_series,
                     true_series=true_series,
                     model=model,
                     model_name=model_name,
-                    eval_periods=backtest_periods,  # Use backtest periods instead
+                    eval_periods=eval_periods,
                 )
-                
                 eval_results.append(df_eval)
 
         except Exception:  # Skip the failed model

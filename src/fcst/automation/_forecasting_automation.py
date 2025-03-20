@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable
-from typing import Literal, Tuple, overload
+from typing import Tuple, overload
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -22,7 +22,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = False,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
 ) -> pd.DataFrame: ...
 
 
@@ -35,7 +35,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = True,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
 
 
@@ -47,7 +47,7 @@ def _forecasting_pipeline(
     forecasting_periods: int,
     models: ModelDict = base_models,
     return_backtest_results: bool = False,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
 ) -> Tuple[str, pd.DataFrame]:
     """Performs model selection and ensemble forecast for a single time-series
 
@@ -71,7 +71,7 @@ def _forecasting_pipeline(
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
-        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
+        keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
 
     Returns
     -------
@@ -89,8 +89,8 @@ def _forecasting_pipeline(
                 models,
                 backtest_periods=backtest_periods,
                 eval_periods=eval_periods,
+                keep_eval_fixed=keep_eval_fixed,
                 return_results=return_backtest_results,
-                eval_method=eval_method,
             )
 
             if return_backtest_results:
@@ -132,7 +132,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -154,7 +154,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
     return_backtest_results: bool = True,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -175,7 +175,7 @@ def run_forecasting_automation(
     min_cap: int | None = 0,
     freq: str = "M",
     models: ModelDict = base_models,
-    eval_method: Literal["rolling", "one-time"] = "rolling",
+    keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
@@ -255,7 +255,7 @@ def run_forecasting_automation(
                 forecasting_periods=forecasting_periods,  # Constant
                 models=models,  # Constant
                 return_backtest_results=return_backtest_results,  # Constant
-                eval_method=eval_method,  # Constant
+                keep_eval_fixed=keep_eval_fixed,  # Constant
             )
 
     timeseries: pd.Series | Iterable[Tuple[str, pd.Series]] = prepare_timeseries(
