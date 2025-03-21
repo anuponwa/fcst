@@ -48,7 +48,7 @@ def _forecasting_pipeline(
     models: ModelDict = fast_models,
     return_backtest_results: bool = False,
     keep_eval_fixed: bool = False,
-) -> Tuple[str, pd.DataFrame]:
+) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
     """Performs model selection and ensemble forecast for a single time-series
 
     Parameters
@@ -67,7 +67,7 @@ def _forecasting_pipeline(
 
         forecasting_periods (int): Forecasting periods
 
-        models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
+        models: (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
@@ -243,7 +243,7 @@ def run_forecasting_automation(
             - "ffill": Forward fill.
             - "bfill": Backward fill.
 
-        models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
+        models: (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
 
         df_X_raw (pd.DataFrame): Raw DF for external features that has a date column, other info, and the values to forecast (Default = None)
 
@@ -290,12 +290,17 @@ def run_forecasting_automation(
     feat_cond = feature_cols is not None
     multivar_models_cond = multivar_models is not None
 
+    # Check run multivariate
     if X_cond:
         if not feat_cond or not multivar_models_cond:
             raise ValueError("`df_X_raw`, `feature_cols`, and `multivar_models` must all be provided for multivariate forecasting.")
+        
+    run_multivar = False
 
+    if X_cond and feat_cond and multivar_models_cond:
+        run_multivar = True
 
-    if X_cond and multivar_models_cond:
+    if run_multivar:
         multivar_models = multivar_models.copy()
 
     def _fcst(series):  # Internal function for simplicity
