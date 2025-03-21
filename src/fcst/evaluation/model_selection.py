@@ -6,13 +6,13 @@ def select_best_models(model_results: ModelResults, top_n: int = 2) -> list[str]
 
     Parameters
     ----------
-    model_results (ModelResults): Sorted model results dictionary
+        model_results (ModelResults): Sorted model results dictionary
 
-    top_n (int): Top N models to return
+        top_n (int): Top N models to return
 
     Returns
     -------
-    list: A list of Top N model names
+        list: A list of Top N model names
     """
 
     return list(model_results.keys())[:top_n]

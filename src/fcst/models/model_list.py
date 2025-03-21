@@ -81,7 +81,6 @@ slow_models = {
     "Prophet": Prophet(),
 }
 
-
 autots_models = {
     "BallTreeRegressionMotif": AutoTSWrapper(BallTreeRegressionMotif()),
     "BallTreeMultivariateMotif": AutoTSWrapper(BallTreeMultivariateMotif()),

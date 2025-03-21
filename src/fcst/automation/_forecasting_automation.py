@@ -9,7 +9,7 @@ from ..common.types import ModelDict
 from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import ensemble_forecast
-from ..models.model_list import base_models
+from ..models.model_list import  multivar_models, fast_models
 from ..preprocessing import prepare_timeseries, prepare_multivar_timeseries
 
 
@@ -20,7 +20,7 @@ def _forecasting_pipeline(
     eval_periods: int,
     top_n: int,
     forecasting_periods: int,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     return_backtest_results: bool = False,
     keep_eval_fixed: bool = False,
 ) -> pd.DataFrame: ...
@@ -33,7 +33,7 @@ def _forecasting_pipeline(
     eval_periods: int,
     top_n: int,
     forecasting_periods: int,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     return_backtest_results: bool = True,
     keep_eval_fixed: bool = False,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
@@ -45,7 +45,7 @@ def _forecasting_pipeline(
     eval_periods: int,
     top_n: int,
     forecasting_periods: int,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     return_backtest_results: bool = False,
     keep_eval_fixed: bool = False,
 ) -> Tuple[str, pd.DataFrame]:
@@ -134,7 +134,7 @@ def run_forecasting_automation(
     freq: str = "M",
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
@@ -158,7 +158,7 @@ def run_forecasting_automation(
     freq: str = "M",
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = True,
     parallel: bool = True,
@@ -180,13 +180,13 @@ def run_forecasting_automation(
     freq: str = "M",
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = base_models,
+    models: ModelDict = fast_models,
     df_X_raw: pd.DataFrame = None,
     feature_cols: list[str] | None = None,
     min_caps_X: float | int | dict[str, float | int] | None = 0,
     agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
     fillna_X: Literal["bfill", "ffill"] | int | float = 0,
-    multivar_models: ModelDict = None,
+    multivar_models: ModelDict = multivar_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
@@ -245,9 +245,30 @@ def run_forecasting_automation(
 
         models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
 
+        df_X_raw (pd.DataFrame): Raw DF for external features that has a date column, other info, and the values to forecast (Default = None)
+
+        feature_cols (list[str]): List of feature columns (Default = None)
+
+        min_caps_X (float | int | dict[str, float | int] | None): Minimum value to cap before forecast
+            If set, the value is used to set the minimum.
+            For example, you might want to set 0 for sales.
+            If None, use the existing values.
+            It can also be a dictionary, e.g.,
+                min_caps = {"feature_1": 0}
+
+        agg_methods_X (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
+
+        fillna_X (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
+            Method to fill missing values:
+            - int/float: Fill with a specific number (e.g., 0).
+            - "ffill": Forward fill.
+            - "bfill": Backward fill.
+
+        multivar_models (ModelDict): A dictionary of multivariate models to use in forecasting (Default = multivar_models)
+
         keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
 
-        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
+        return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
         parallel (bool): Whether or not to utilise parallisation (Default is True)
 
@@ -263,6 +284,19 @@ def run_forecasting_automation(
     """
 
     models = models.copy()
+
+    # If X is provided, features and multivar models must also be provided
+    X_cond = df_X_raw is not None
+    feat_cond = feature_cols is not None
+    multivar_models_cond = multivar_models is not None
+
+    if X_cond:
+        if not feat_cond or not multivar_models_cond:
+            raise ValueError("`df_X_raw`, `feature_cols`, and `multivar_models` must all be provided for multivariate forecasting.")
+
+
+    if X_cond and multivar_models_cond:
+        multivar_models = multivar_models.copy()
 
     def _fcst(series):  # Internal function for simplicity
         with warnings.catch_warnings():

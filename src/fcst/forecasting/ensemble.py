@@ -16,25 +16,25 @@ def ensemble_forecast(
 
     Parameters
     ----------
-    models (ModelDict): Model dictionary
-        The keys are model names and
-        the values are the forecaster models from `sktime`.
+        models (ModelDict): Model dictionary
+            The keys are model names and
+            the values are the forecaster models from `sktime`.
 
-    model_names (list[str]): Models to use for ensembling
+        model_names (list[str]): Models to use for ensembling
 
-    series (pd.Series): Pandas Series of floats
-        Preprocessed, sorted, and filtered time series.
-        It's assumed that the series has all the months,
-        and ends with the `data_date` you want to train.
-        This Series should come from the preprocessing step.
+        series (pd.Series): Pandas Series of floats
+            Preprocessed, sorted, and filtered time series.
+            It's assumed that the series has all the months,
+            and ends with the `data_date` you want to train.
+            This Series should come from the preprocessing step.
 
-    periods (int): Forecasting periods
+        periods (int): Forecasting periods
 
-    forecast_col (str): The column name for the output forecast (Default is "forecast")
+        forecast_col (str): The column name for the output forecast (Default is "forecast")
 
     Returns
     -------
-    pd.Series[float]: Future time horizon depending on the series' end date and `periods`
+        pd.Series[float]: Future time horizon depending on the series' end date and `periods`
     """
 
     models = models.copy()

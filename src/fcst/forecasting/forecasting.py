@@ -17,25 +17,25 @@ def forecast(
 
     Parameters
     ----------
-    model (BaseForecaster): `sktime` forecaster model
+        model (BaseForecaster): `sktime` forecaster model
 
-    series (pd.Series): Pandas Series of floats
-        Preprocessed, sorted, and filtered time series.
-        It's assumed that the series has all the months,
-        and ends with the `data_date` you want to train.
-        This Series should come from the preprocessing step.
+        series (pd.Series): Pandas Series of floats
+            Preprocessed, sorted, and filtered time series.
+            It's assumed that the series has all the months,
+            and ends with the `data_date` you want to train.
+            This Series should come from the preprocessing step.
 
-    periods (int): Forecasting periods
+        periods (int): Forecasting periods
 
-    forecast_col (str): The column name for the output forecast (Default is "forecast")
+        forecast_col (str): The column name for the output forecast (Default is "forecast")
 
-    min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
+        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
 
-    fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
+        fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
 
     Returns
     -------
-    pd.Series[float]: Future time horizon depending on the series' end date and `periods`
+        pd.Series[float]: Future time horizon depending on the series' end date and `periods`
     """
 
     if len(series) == 0:

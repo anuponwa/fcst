@@ -239,7 +239,7 @@ def prepare_X_df(
 
     Parameters
     ----------
-        df_raw (pd.DataFrame): Raw DF that has a date column, other info, and the value to forecast
+        df_raw (pd.DataFrame): Raw DF that has a date column, other info, and the values to forecast
 
         date_col (str): The date column to use in forecasting
 
