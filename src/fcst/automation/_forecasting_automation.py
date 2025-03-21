@@ -10,7 +10,7 @@ from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import ensemble_forecast
 from ..models.model_list import base_models
-from ..preprocessing import prepare_timeseries
+from ..preprocessing import prepare_timeseries, prepare_multivar_timeseries
 
 
 @overload
@@ -176,16 +176,22 @@ def run_forecasting_automation(
     top_n: int,
     forecasting_periods: int,
     id_cols: list[str] | None = None,
-    id_join_char: str = "_",
     min_cap: int | None = 0,
     freq: str = "M",
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = base_models,
+    df_X_raw: pd.DataFrame = None,
+    feature_cols: list[str] | None = None,
+    min_caps_X: float | int | dict[str, float | int] | None = 0,
+    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
+    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
+    multivar_models: ModelDict = None,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
+    id_join_char: str = "_",
 ) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
     """Runs and returns forecast results for each ID
 
@@ -222,8 +228,6 @@ def run_forecasting_automation(
             If None, the whole dataframe is treated as a single time-series
             If a list of columns is passed in, a new "id" index will be created
 
-        id_join_char (str): A character to join multiple ID columns (Default = "_")
-
         min_cap (int | None): Minimum value to cap before forecast
             If set, the value is used to set the minimum.
             For example, you might want to set 0 for sales.
@@ -241,13 +245,15 @@ def run_forecasting_automation(
 
         models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
 
-        eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
+        keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False),
 
         parallel (bool): Whether or not to utilise parallisation (Default is True)
 
         n_jobs (int): For parallel only, the number of jobs (Default = -1)
+
+        id_join_char (str): A character to join multiple ID columns (Default = "_")
 
     Returns
     -------
@@ -283,6 +289,24 @@ def run_forecasting_automation(
         freq=freq,
         agg_method=agg_method,
         fillna=fillna,
+        id_join_char=id_join_char,
+    )
+
+    df_multivar = prepare_multivar_timeseries(
+        df_raw = df_raw,
+        df_X_raw = df_X_raw,
+        date_col=date_col,
+        value_col=value_col,
+        feature_cols=feature_cols,
+        data_period_date=data_period_date,
+        id_cols=id_cols,
+        min_cap=min_cap,
+        min_caps_X=min_caps_X,
+        freq=freq,
+        agg_method=agg_method,
+        agg_methods_X=agg_methods_X,
+        fillna=fillna,
+        fillna_X=fillna_X,
         id_join_char=id_join_char,
     )
 

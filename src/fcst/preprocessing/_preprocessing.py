@@ -229,7 +229,7 @@ def prepare_X_df(
     feature_cols: list[str],
     data_period_date: pd.Period,
     id_cols: list[str] | None = None,
-    min_caps_X: float | int | dict[str, float | int] | None = 0,
+    min_caps: float | int | dict[str, float | int] | None = 0,
     freq: str = "M",
     agg_methods: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
@@ -251,12 +251,12 @@ def prepare_X_df(
             If None, the whole dataframe is treated as a single time-series
             If a list of columns is passed in, a new "id" index will be created
 
-        min_caps_X (float | int | dict[str, float | int] | None): Minimum value to cap before forecast
+        min_caps (float | int | dict[str, float | int] | None): Minimum value to cap before forecast
             If set, the value is used to set the minimum.
             For example, you might want to set 0 for sales.
             If None, use the existing values.
             It can also be a dictionary, e.g.,
-                min_caps_X = {"feature_1": 0}
+                min_caps = {"feature_1": 0}
 
         freq (str): Frequency to resample and forecast (Default = "M")
 
@@ -301,12 +301,12 @@ def prepare_X_df(
     df_X = df_raw[columns]
 
     # Clean min_cap
-    if min_caps_X is not None:
-        if isinstance(min_caps_X, dict):
-            for feat_col, min_cap in min_caps_X.items():
+    if min_caps is not None:
+        if isinstance(min_caps, dict):
+            for feat_col, min_cap in min_caps.items():
                 df_X.loc[df_X[feat_col] < min_cap, feat_col] = min_cap
         else:
-            min_cap = min_caps_X
+            min_cap = min_caps
             for feat_col in feature_cols:
                 df_X.loc[df_X[feat_col] < min_cap, feat_col] = min_cap
 
@@ -375,7 +375,7 @@ def prepare_multivar_timeseries(
         feature_cols=feature_cols,
         data_period_date=data_period_date,
         id_cols=id_cols,
-        min_caps_X=min_caps_X,
+        min_caps=min_caps_X,
         freq=freq,
         agg_methods=agg_methods_X,
         fillna=fillna_X,
@@ -387,13 +387,12 @@ def prepare_multivar_timeseries(
     def ts_generator():
         unique_ids = df_total.index.get_level_values(0).unique()
         for id_ in unique_ids:
-            y_series = df_total.loc[(id_,), value_col]
-            X_features = df_total.loc[(id_,), feature_cols]
+            df_y_X = df_total.loc[(id_,), :]
 
             # Gracefully handle the missing sales after filtering
-            if len(y_series) == 0:
+            if len(df_y_X) == 0:
                 continue
 
-            yield (id_, y_series, X_features)
+            yield (id_, df_y_X)
 
     return ts_generator()
