@@ -1,12 +1,12 @@
 import warnings
 from collections.abc import Iterable
-from typing import Tuple, overload
+from typing import Literal, Tuple, overload
 
 import pandas as pd
 from joblib import Parallel, delayed
 
 from ..common.types import ModelDict
-from ..evaluation.model_evaluation import backtest_evaluate
+from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import ensemble_forecast
 from ..models.model_list import base_models
@@ -79,6 +79,7 @@ def _forecasting_pipeline(
 
         Tuple[pd.Series, pd.DataFrame]: ID and the resulting forecasted series with the back-testing raw results (when return_backtest_results = True)
     """
+
     with warnings.catch_warnings():
         # Suppress all warnings from inside this function
         warnings.simplefilter("ignore")
@@ -131,6 +132,8 @@ def run_forecasting_automation(
     id_join_char: str = "_",
     min_cap: int | None = 0,
     freq: str = "M",
+    agg_method: Literal["sum", "mean"] = "sum",
+    fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = base_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
@@ -153,6 +156,8 @@ def run_forecasting_automation(
     id_join_char: str = "_",
     min_cap: int | None = 0,
     freq: str = "M",
+    agg_method: Literal["sum", "mean"] = "sum",
+    fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = base_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = True,
@@ -174,12 +179,14 @@ def run_forecasting_automation(
     id_join_char: str = "_",
     min_cap: int | None = 0,
     freq: str = "M",
+    agg_method: Literal["sum", "mean"] = "sum",
+    fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = base_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
     n_jobs: int = -1,
-) -> pd.DataFrame:
+) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
     """Runs and returns forecast results for each ID
 
     This automatically runs the pipeline.
@@ -224,6 +231,14 @@ def run_forecasting_automation(
 
         freq (str): Frequency to resample and forecast (Default = "M")
 
+        agg_methods (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
+
+        fillna (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
+            Method to fill missing values:
+            - int/float: Fill with a specific number (e.g., 0).
+            - "ffill": Forward fill.
+            - "bfill": Backward fill.
+
         models: (ModelDict): A dictionary of models to use in forecasting (Default = base_models)
 
         eval_method ("rolling" or "one-time"): The method to evaluate back-testing (Default="rolling")
@@ -266,11 +281,10 @@ def run_forecasting_automation(
         id_cols=id_cols,
         min_cap=min_cap,
         freq=freq,
+        agg_method=agg_method,
+        fillna=fillna,
         id_join_char=id_join_char,
     )
-
-    if not id_cols:
-        return _fcst(series=timeseries)
 
     # Check if run in parallel
     if parallel:

@@ -1,9 +1,9 @@
 from collections.abc import Iterable
-from typing import Literal, Tuple, overload
+from typing import Tuple, overload
 
 import pandas as pd
 
-from fcst.metrics import mape
+from fcst.metrics import smape
 
 from ..common.types import ModelDict, ModelResults
 from ..forecasting.forecasting import forecast
@@ -180,9 +180,7 @@ def backtest_evaluate(
         df_eval = pd.concat(eval_results)
 
         # Append results
-        model_results[model_name] = mape(
-            df_eval[actual_col], df_eval[fcst_col], symmetric=True
-        )
+        model_results[model_name] = smape(df_eval[actual_col], df_eval[fcst_col])
 
         if return_results:
             all_eval.append(df_eval)

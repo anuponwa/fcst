@@ -5,6 +5,6 @@ metrics sub-package
 Provides forecasting metrics.
 """
 
-from ._metrics import mape
+from ._metrics import mape, smape, mae, mse, rmse
 
-__all__ = ["mape"]
+__all__ = ["mape", "smape", "mae", "mse", "rmse"]

@@ -6,6 +6,16 @@ Provides all the useful functionalities about data
 and time-series preprocessing before feeding to the model.
 """
 
-from ._preprocessing import prepare_timeseries
+from ._preprocessing import (
+    prepare_timeseries,
+    prepare_forecasting_df,
+    fill_missing_dates,
+    prepare_X_df,
+)
 
-__all__ = ["prepare_timeseries"]
+__all__ = [
+    "prepare_timeseries",
+    "prepare_forecasting_df",
+    "fill_missing_dates",
+    "prepare_X_df"
+]
