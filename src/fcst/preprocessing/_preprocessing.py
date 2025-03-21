@@ -26,7 +26,6 @@ def fill_missing_dates(
     Returns
     -------
         pd.Series | pd.DataFrame
-
     """
 
     # Find min date and create the full date range
@@ -143,51 +142,6 @@ def prepare_forecasting_df(
     df_forecasting = df_forecasting.sort_index()
 
     return df_forecasting
-
-
-# def extract_timeseries(
-#     df_forecasting: pd.DataFrame,
-#     value_col: str,
-#     data_period_date: pd.Period,
-#     fillna: Literal["bfill", "ffill"] | int | float = 0,
-# ) -> Iterable[Tuple[str, pd.Series]]:
-#     """Generates each time-series for forecasting and its corresponding ID
-
-#     Parameters
-#     ----------
-#         df_forecasting (pd.DataFrame): Preprocessed DF for forecasting
-#             Where the index is the pd.PeriodIndex,
-#             and the columns are id and value.
-#             The values are resampled to the specified `freq`.
-
-#         value_col (str): The value column to forecast
-
-#         date_period_date (pd.Period): Ending date for data to use for training
-
-#         fillna (Literal["bfill", "ffill"] | int | float, optional (Default = 0))
-#             Method to fill missing values:
-#             - int/float: Fill with a specific number (e.g., 0).
-#             - "ffill": Forward fill.
-#             - "bfill": Backward fill.
-
-#     Returns
-#     -------
-#         Iterable[Tuple[str, pd.Series]]: A tuple of ID name and its time-series (when `id_col` is passed in)
-#     """
-
-#     def ts_generator():
-#         unique_ids = df_forecasting.index.get_level_values(0).unique()
-#         for id_ in unique_ids:
-#             series = df_forecasting.loc[(id_,), value_col]
-#             series = fill_missing_dates(series, data_period_date, fillna)
-
-#             # Gracefully handle the missing sales after filtering
-#             if len(series) == 0:
-#                 continue
-
-#             yield (id_, series.loc[series.index <= data_period_date])
-
-#     return ts_generator()
 
 
 def prepare_timeseries(
@@ -383,3 +337,63 @@ def prepare_X_df(
     df_X_prep = df_X_prep.sort_index()
 
     return df_X_prep
+
+
+def prepare_multivar_timeseries(
+    df_raw: pd.DataFrame,
+    df_X_raw: pd.DataFrame,
+    date_col: str,
+    value_col: str,
+    feature_cols: list[str],
+    data_period_date: pd.Period,
+    id_cols: list[str] | None = None,
+    min_cap: float | int | None = 0,
+    min_caps_X: float | int | dict[str, float | int] | None = 0,
+    freq: str = "M",
+    agg_method: Literal["sum", "mean"] = "sum",
+    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
+    fillna: Literal["bfill", "ffill"] | int | float = 0,
+    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
+    id_join_char: str = "_",
+):
+    df_y = prepare_forecasting_df(
+        df_raw=df_raw,
+        date_col=date_col,
+        value_col=value_col,
+        data_period_date=data_period_date,
+        id_cols=id_cols,
+        min_cap=min_cap,
+        freq=freq,
+        agg_method=agg_method,
+        fillna=fillna,
+        join_char=id_join_char,
+    )
+
+    df_X = prepare_X_df(
+        df_raw=df_X_raw,
+        date_col=date_col,
+        feature_cols=feature_cols,
+        data_period_date=data_period_date,
+        id_cols=id_cols,
+        min_caps_X=min_caps_X,
+        freq=freq,
+        agg_methods=agg_methods_X,
+        fillna=fillna_X,
+        join_char="_",
+    )
+
+    df_total = df_y.merge(df_X, left_index=True, right_index=True, how="inner")
+
+    def ts_generator():
+        unique_ids = df_total.index.get_level_values(0).unique()
+        for id_ in unique_ids:
+            y_series = df_total.loc[(id_,), value_col]
+            X_features = df_total.loc[(id_,), feature_cols]
+
+            # Gracefully handle the missing sales after filtering
+            if len(y_series) == 0:
+                continue
+
+            yield (id_, y_series, X_features)
+
+    return ts_generator()
