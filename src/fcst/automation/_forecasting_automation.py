@@ -1,5 +1,4 @@
 import warnings
-from collections.abc import Iterable
 from typing import Literal, Tuple, overload
 
 import pandas as pd
@@ -8,9 +7,9 @@ from joblib import Parallel, delayed
 from ..common.types import ModelDict
 from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
-from ..forecasting.ensemble import ensemble_forecast, _ensemble_forecast_X
-from ..models.model_list import multivar_models, fast_models
-from ..preprocessing import prepare_timeseries, prepare_multivar_timeseries
+from ..forecasting.ensemble import _ensemble_forecast_X, ensemble_forecast
+from ..models.model_list import fast_models, multivar_models
+from ..preprocessing import prepare_multivar_timeseries, prepare_timeseries
 
 
 @overload
@@ -144,14 +143,19 @@ def _forecasting_pipeline(
 
                 model_results = {**model_results, **model_results_multi}
 
+                print(model_results)
+
             models_list = select_best_models(model_results=model_results, top_n=top_n)
+
+            multivar_models_exists = True
 
             if run_multivar:
                 model_types = [m[1] for m in models_list]
+                model_names_list = [m[0] for m in models_list]
 
                 # Check if we need to run multivariate models
                 if "2_multi" not in model_types:
-                    run_multivar = False
+                    multivar_models_exists = False
 
             if not run_multivar:
                 forecast_results = ensemble_forecast(
@@ -161,17 +165,29 @@ def _forecasting_pipeline(
                     periods=forecasting_periods,
                 )
             else:
-                forecast_results = _ensemble_forecast_X(
-                    models=models,
-                    multivar_models=multivar_models,
-                    model_names=models_list,
-                    series=series,
-                    df_y_X=df_y_X,
-                    periods=forecasting_periods,
-                )
+                if multivar_models_exists:
+                    forecast_results = _ensemble_forecast_X(
+                        models=models,
+                        multivar_models=multivar_models,
+                        model_names=models_list,
+                        series=series,
+                        df_y_X=df_y_X,
+                        periods=forecasting_periods,
+                    )
+                else:
+                    forecast_results = ensemble_forecast(
+                        models=models,
+                        model_names=model_names_list,
+                        series=series,
+                        periods=forecasting_periods,
+                    )
 
             df_forecast_results = pd.DataFrame(forecast_results)
-            df_forecast_results["selected_models"] = "|".join(models_list)
+
+            if not run_multivar:
+                df_forecast_results["selected_models"] = "|".join(models_list)
+            else:
+                df_forecast_results["selected_models"] = "|".join(model_names_list)
 
             if return_backtest_results:
                 return df_forecast_results, df_backtest_results
@@ -199,6 +215,12 @@ def run_forecasting_automation(
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = fast_models,
+    df_X_raw: pd.DataFrame = None,
+    feature_cols: list[str] | None = None,
+    min_caps_X: float | int | dict[str, float | int] | None = 0,
+    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
+    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
+    multivar_models: ModelDict = multivar_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
     parallel: bool = True,
@@ -223,6 +245,12 @@ def run_forecasting_automation(
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
     models: ModelDict = fast_models,
+    df_X_raw: pd.DataFrame = None,
+    feature_cols: list[str] | None = None,
+    min_caps_X: float | int | dict[str, float | int] | None = 0,
+    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
+    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
+    multivar_models: ModelDict = multivar_models,
     keep_eval_fixed: bool = False,
     return_backtest_results: bool = True,
     parallel: bool = True,
@@ -369,7 +397,7 @@ def run_forecasting_automation(
     if run_multivar:
         multivar_models = multivar_models.copy()
 
-    def _fcst(series):  # Internal function for simplicity
+    def _fcst(series, df_y_X=None):  # Internal function for simplicity
         with warnings.catch_warnings():
             # Suppress all warnings from inside this function
             warnings.simplefilter("ignore")
@@ -380,11 +408,13 @@ def run_forecasting_automation(
                 top_n=top_n,  # Constant
                 forecasting_periods=forecasting_periods,  # Constant
                 models=models,  # Constant
+                df_y_X=df_y_X,
+                multivar_models=multivar_models,  # Constant
                 return_backtest_results=return_backtest_results,  # Constant
                 keep_eval_fixed=keep_eval_fixed,  # Constant
             )
 
-    timeseries: pd.Series | Iterable[Tuple[str, pd.Series]] = prepare_timeseries(
+    timeseries: dict[str, pd.Series] = prepare_timeseries(
         df_raw=df_raw,
         date_col=date_col,
         value_col=value_col,
@@ -398,7 +428,7 @@ def run_forecasting_automation(
     )
 
     if run_multivar:
-        df_multivar = prepare_multivar_timeseries(
+        df_multivar: dict[str, pd.DataFrame] = prepare_multivar_timeseries(
             df_raw=df_raw,
             df_X_raw=df_X_raw,
             date_col=date_col,
@@ -416,18 +446,26 @@ def run_forecasting_automation(
             id_join_char=id_join_char,
         )
 
+    ids_list = [k for k in timeseries.keys()]
+
+    if not run_multivar:
+        timeseries_list = [(v, None) for v in timeseries.values()]
+
+    else:
+        timeseries_list = [(v, df_multivar.get(k, None)) for k, v in timeseries.items()]
+
     # Check if run in parallel
     if parallel:
-        timeseries_list = list(timeseries)
         results_list = Parallel(n_jobs=n_jobs)(
-            (delayed(_fcst)(series)) for _, series in timeseries_list
+            (delayed(_fcst)(series, df_y_X)) for series, df_y_X in timeseries_list
         )
 
-        results = [
-            (id_, result) for (id_, _), result in zip(timeseries_list, results_list)
-        ]
+        results = [(id_, result) for id_, result in zip(ids_list, results_list)]
     else:
-        results = [(id_, _fcst(series)) for id_, series in timeseries]
+        results = [
+            (id_, _fcst(series, df_y_X))
+            for id_, (series, df_y_X) in zip(ids_list, timeseries_list)
+        ]
 
     def _filter_none_results(results_list: list[Tuple[str, pd.Series]]):
         return list(filter(lambda x: x[1] is not None, results_list))

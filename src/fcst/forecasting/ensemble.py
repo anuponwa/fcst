@@ -1,8 +1,10 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 
-from .forecasting import forecast
 from ..common.types import ModelDict
+from .forecasting import forecast
 
 
 def ensemble_forecast(
@@ -63,7 +65,7 @@ def ensemble_forecast(
 def _ensemble_forecast_X(
     models: ModelDict,
     multivar_models: ModelDict,
-    model_names: list[(str, str)],
+    model_names: list[str | Tuple[str, str]],
     series: pd.Series,
     df_y_X: pd.DataFrame,
     periods: int,

@@ -61,42 +61,45 @@ def get_backtest_periods(
 
 @overload
 def backtest_evaluate(
-    series: pd.Series,
+    series: pd.Series | pd.DataFrame,
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
     keep_eval_fixed: bool = False,
     min_data_points: int = 8,
+    fcst_col_index: int = 0,
     return_results: bool = False,
 ) -> ModelResults: ...
 
 
 @overload
 def backtest_evaluate(
-    series: pd.Series,
+    series: pd.Series | pd.DataFrame,
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
     keep_eval_fixed: bool = False,
     min_data_points: int = 8,
+    fcst_col_index: int = 0,
     return_results: bool = True,
 ) -> Tuple[ModelResults, pd.DataFrame]: ...
 
 
 def backtest_evaluate(
-    series: pd.Series,
+    series: pd.Series | pd.DataFrame,
     models: ModelDict,
     backtest_periods: int = 5,
     eval_periods: int = 2,
     keep_eval_fixed: bool = False,
     min_data_points: int = 8,
+    fcst_col_index: int = 0,
     return_results: bool = False,
 ) -> ModelResults:
     """Rolling back-test the series with multiple BaseForecaster models
 
     Parameters
     ----------
-        series (pd.Series): Pandas Series of floats
+        series (pd.Series | pd.DataFrame): Pandas Series of floats
             Preprocessed, sorted, and filtered time series.
             It's assumed that the series has all the months,
             and ends with the `data_date` you want to train.
@@ -113,6 +116,8 @@ def backtest_evaluate(
         keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
 
         min_data_points (int): Minimum data points in the series to perform back-testing
+
+        fcst_col_index (int): Column index used for back-testing (in the case of pd.DataFrame)
 
         return_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
@@ -135,8 +140,13 @@ def backtest_evaluate(
             return model_results, pd.DataFrame()
 
         return model_results
+    
+    if isinstance(series, pd.Series):
+        true_series = series.copy()
+    elif isinstance(series, pd.DataFrame):
+        col_of_interest = series.columns[fcst_col_index]
+        true_series = series[col_of_interest].copy()
 
-    true_series = series.copy()
     actual_col = "actual"
     fcst_col = "forecast"
 
@@ -174,7 +184,8 @@ def backtest_evaluate(
                 )
                 eval_results.append(df_eval)
 
-        except Exception:  # Skip the failed model
+        except Exception as e:  # Skip the failed model
+            # print(model_name, e)  # Print error log
             continue
 
         df_eval = pd.concat(eval_results)

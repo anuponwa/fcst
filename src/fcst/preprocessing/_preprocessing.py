@@ -155,7 +155,7 @@ def prepare_timeseries(
     agg_method: Literal["sum", "mean"] = "sum",
     fillna: Literal["bfill", "ffill"] | int | float = 0,
     id_join_char: str = "_",
-) -> Iterable[Tuple[str, pd.Series]]:
+) -> dict[str, pd.Series]:
     """Prepares time-series from Raw DataFrame
 
     Parameters
@@ -209,18 +209,19 @@ def prepare_timeseries(
         join_char=id_join_char,
     )
 
-    def ts_generator():
-        unique_ids = df_forecasting.index.get_level_values(0).unique()
-        for id_ in unique_ids:
-            series = df_forecasting.loc[(id_,), value_col]
+    ret_dict = {}
 
-            # Gracefully handle the missing sales after filtering
-            if len(series) == 0:
-                continue
+    unique_ids = df_forecasting.index.get_level_values(0).unique()
+    for id_ in unique_ids:
+        series = df_forecasting.loc[(id_,), value_col]
 
-            yield (id_, series)
+        # Gracefully handle the missing sales after filtering
+        if len(series) == 0:
+            continue
 
-    return ts_generator()
+        ret_dict[id_] = series
+
+    return ret_dict
 
 
 def prepare_X_df(
@@ -355,7 +356,7 @@ def prepare_multivar_timeseries(
     fillna: Literal["bfill", "ffill"] | int | float = 0,
     fillna_X: Literal["bfill", "ffill"] | int | float = 0,
     id_join_char: str = "_",
-):
+) -> dict[str, pd.DataFrame]:
     df_y = prepare_forecasting_df(
         df_raw=df_raw,
         date_col=date_col,
@@ -384,15 +385,15 @@ def prepare_multivar_timeseries(
 
     df_total = df_y.merge(df_X, left_index=True, right_index=True, how="inner")
 
-    def ts_generator():
-        unique_ids = df_total.index.get_level_values(0).unique()
-        for id_ in unique_ids:
-            df_y_X = df_total.loc[(id_,), :]
+    ret_dict = {}
+    unique_ids = df_total.index.get_level_values(0).unique()
+    for id_ in unique_ids:
+        df_y_X = df_total.loc[(id_,), :]
 
-            # Gracefully handle the missing sales after filtering
-            if len(df_y_X) == 0:
-                continue
+        # Gracefully handle the missing sales after filtering
+        if len(df_y_X) == 0:
+            continue
 
-            yield (id_, df_y_X)
+        ret_dict[id_] = df_y_X
 
-    return ts_generator()
+    return ret_dict
