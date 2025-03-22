@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, Tuple
 
 import pandas as pd
 from sktime.forecasting.base import ForecastingHorizon
@@ -16,4 +16,5 @@ class Forecaster(Protocol):
 
 
 ModelDict = dict[str, Forecaster]
-ModelResults = dict[str, float]
+# Either error measure or (error, model_type)
+ModelResults = dict[str, float | Tuple[float, str]]

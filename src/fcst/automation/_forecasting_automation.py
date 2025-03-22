@@ -8,8 +8,8 @@ from joblib import Parallel, delayed
 from ..common.types import ModelDict
 from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
-from ..forecasting.ensemble import ensemble_forecast
-from ..models.model_list import  multivar_models, fast_models
+from ..forecasting.ensemble import ensemble_forecast, _ensemble_forecast_X
+from ..models.model_list import multivar_models, fast_models
 from ..preprocessing import prepare_timeseries, prepare_multivar_timeseries
 
 
@@ -21,6 +21,8 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    df_y_X: pd.DataFrame = None,
+    multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = False,
     keep_eval_fixed: bool = False,
 ) -> pd.DataFrame: ...
@@ -34,6 +36,8 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    df_y_X: pd.DataFrame = None,
+    multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = True,
     keep_eval_fixed: bool = False,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
@@ -46,6 +50,8 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    df_y_X: pd.DataFrame = None,
+    multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = False,
     keep_eval_fixed: bool = False,
 ) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
@@ -67,7 +73,15 @@ def _forecasting_pipeline(
 
         forecasting_periods (int): Forecasting periods
 
-        models: (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
+        models (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
+
+        df_y_X (pd.DataFrame): A dataframe for multivariate forecast (Default = None)
+            The dataframe must be preprocessed. The index is time period index.
+            The missing dates must be filled.
+            The first column is the column of interest, other columns are features.
+            Use prepare or extract timeseries from `preprocessing` module.
+
+        multivar_models (ModelDict): A dictionary of multivariate models to use in forecasting (Default = multivar_models)
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
@@ -84,6 +98,10 @@ def _forecasting_pipeline(
         # Suppress all warnings from inside this function
         warnings.simplefilter("ignore")
 
+        run_multivar = False
+        if isinstance(df_y_X, pd.DataFrame) and isinstance(multivar_models, dict):
+            run_multivar = True
+
         try:
             model_results = backtest_evaluate(
                 series,
@@ -94,17 +112,63 @@ def _forecasting_pipeline(
                 return_results=return_backtest_results,
             )
 
+            if run_multivar:  # Run multi-variate models also
+                model_results_multi = backtest_evaluate(
+                    df_y_X,
+                    multivar_models,
+                    backtest_periods=backtest_periods,
+                    eval_periods=eval_periods,
+                    keep_eval_fixed=keep_eval_fixed,
+                    return_results=return_backtest_results,
+                )
+
+            # Back-test results
             if return_backtest_results:
                 model_results, df_backtest_results = model_results[0], model_results[1]
+                if run_multivar:
+                    model_results_multi, df_backtest_results_multi = (
+                        model_results_multi[0],
+                        model_results_multi[1],
+                    )
+                    df_backtest_results = pd.concat(
+                        [df_backtest_results, df_backtest_results_multi]
+                    )
+
+            # Gather the results from multivar models for model selection
+            if run_multivar:
+                # Append tags so we know which models are uni or multivariate
+                model_results = {k: (v, "1_uni") for k, v in model_results.items()}
+                model_results_multi = {
+                    k: (v, "2_multi") for k, v in model_results_multi.items()
+                }
+
+                model_results = {**model_results, **model_results_multi}
 
             models_list = select_best_models(model_results=model_results, top_n=top_n)
 
-            forecast_results = ensemble_forecast(
-                models=models,
-                model_names=models_list,
-                series=series,
-                periods=forecasting_periods,
-            )
+            if run_multivar:
+                model_types = [m[1] for m in models_list]
+
+                # Check if we need to run multivariate models
+                if "2_multi" not in model_types:
+                    run_multivar = False
+
+            if not run_multivar:
+                forecast_results = ensemble_forecast(
+                    models=models,
+                    model_names=models_list,
+                    series=series,
+                    periods=forecasting_periods,
+                )
+            else:
+                forecast_results = _ensemble_forecast_X(
+                    models=models,
+                    multivar_models=multivar_models,
+                    model_names=models_list,
+                    series=series,
+                    df_y_X=df_y_X,
+                    periods=forecasting_periods,
+                )
 
             df_forecast_results = pd.DataFrame(forecast_results)
             df_forecast_results["selected_models"] = "|".join(models_list)
@@ -293,8 +357,10 @@ def run_forecasting_automation(
     # Check run multivariate
     if X_cond:
         if not feat_cond or not multivar_models_cond:
-            raise ValueError("`df_X_raw`, `feature_cols`, and `multivar_models` must all be provided for multivariate forecasting.")
-        
+            raise ValueError(
+                "`df_X_raw`, `feature_cols`, and `multivar_models` must all be provided for multivariate forecasting."
+            )
+
     run_multivar = False
 
     if X_cond and feat_cond and multivar_models_cond:
@@ -331,23 +397,24 @@ def run_forecasting_automation(
         id_join_char=id_join_char,
     )
 
-    df_multivar = prepare_multivar_timeseries(
-        df_raw = df_raw,
-        df_X_raw = df_X_raw,
-        date_col=date_col,
-        value_col=value_col,
-        feature_cols=feature_cols,
-        data_period_date=data_period_date,
-        id_cols=id_cols,
-        min_cap=min_cap,
-        min_caps_X=min_caps_X,
-        freq=freq,
-        agg_method=agg_method,
-        agg_methods_X=agg_methods_X,
-        fillna=fillna,
-        fillna_X=fillna_X,
-        id_join_char=id_join_char,
-    )
+    if run_multivar:
+        df_multivar = prepare_multivar_timeseries(
+            df_raw=df_raw,
+            df_X_raw=df_X_raw,
+            date_col=date_col,
+            value_col=value_col,
+            feature_cols=feature_cols,
+            data_period_date=data_period_date,
+            id_cols=id_cols,
+            min_cap=min_cap,
+            min_caps_X=min_caps_X,
+            freq=freq,
+            agg_method=agg_method,
+            agg_methods_X=agg_methods_X,
+            fillna=fillna,
+            fillna_X=fillna_X,
+            id_join_char=id_join_char,
+        )
 
     # Check if run in parallel
     if parallel:
