@@ -12,8 +12,8 @@ def forecast(
     forecast_col: str = "forecast",
     min_data_points: int = 3,
     fallback_model: Forecaster = MeanDefaultForecaster(window=3),
-    min_forecast: float | int = 0,
-    max_forecast_factor: float | int = 2.5,
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
     fcst_col_index: int = 0,
 ) -> pd.Series:
     """Forecasts the series using a given model from the data date
@@ -36,9 +36,9 @@ def forecast(
 
         fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
 
-        min_forecast (float | int): Set a minimum forecast (Default = 0)
+        min_forecast (float | int | None): Set a minimum forecast (Default = 0)
 
-        max_forecast_factor (float | int): The factor of maximum forecast relative to the maximum history (Default = 2.5)
+        max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
 
         fcst_col_index (int): Index of the column of interest in foreasting (only applies if `series` is pd.DataFrame) (Default = 0 (first column))
 
@@ -49,13 +49,6 @@ def forecast(
 
     if len(series) == 0:
         raise ValueError("`series` must have more than 0 length for forecasting.")
-
-    # Set cap
-    if isinstance(series, pd.Series):
-        max_forecast = series.max() * max_forecast_factor
-    elif isinstance(series, pd.DataFrame):
-        col_interest = series.columns[fcst_col_index]
-        max_forecast = series[col_interest].max() * max_forecast_factor
 
     data_end_date = series.index.max()  # Get the latest date from the series
 
@@ -69,7 +62,17 @@ def forecast(
     predictions = predictions.rename(forecast_col)
 
     # Cap values
-    predictions.loc[predictions < min_forecast] = min_forecast
-    predictions.loc[predictions > max_forecast] = max_forecast
+    if min_forecast is not None:
+        predictions.loc[predictions < min_forecast] = min_forecast
+
+    if max_forecast_factor is not None:
+        # Set cap
+        if isinstance(series, pd.Series):
+            max_forecast = series.max() * max_forecast_factor
+        elif isinstance(series, pd.DataFrame):
+            col_interest = series.columns[fcst_col_index]
+            max_forecast = series[col_interest].max() * max_forecast_factor
+
+        predictions.loc[predictions > max_forecast] = max_forecast
 
     return predictions

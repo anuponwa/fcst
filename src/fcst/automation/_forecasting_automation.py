@@ -1,13 +1,21 @@
 import warnings
-from typing import Literal, Tuple, overload
+from typing import Tuple, overload
 
 import pandas as pd
 from joblib import Parallel, delayed
 
-from ..common.types import ModelDict
+from ..common.configs import (
+    BacktestingConfig,
+    DataProcessingConfig,
+    ForecastingConfig,
+    MultiProcessingConfig,
+    MultiVarConfig,
+)
+from ..common.types import Forecaster, ModelDict
 from ..evaluation.backtesting import backtest_evaluate
 from ..evaluation.model_selection import select_best_models
 from ..forecasting.ensemble import _ensemble_forecast_X, ensemble_forecast
+from ..models._models import MeanDefaultForecaster
 from ..models.model_list import fast_models, multivar_models
 from ..preprocessing import prepare_multivar_timeseries, prepare_timeseries
 
@@ -20,6 +28,11 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    min_data_points: int = 3,
+    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
+    fcst_col_index: int = 0,
     df_y_X: pd.DataFrame = None,
     multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = False,
@@ -35,6 +48,11 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    min_data_points: int = 3,
+    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
+    fcst_col_index: int = 0,
     df_y_X: pd.DataFrame = None,
     multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = True,
@@ -49,6 +67,11 @@ def _forecasting_pipeline(
     top_n: int,
     forecasting_periods: int,
     models: ModelDict = fast_models,
+    min_data_points: int = 3,
+    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
+    fcst_col_index: int = 0,
     df_y_X: pd.DataFrame = None,
     multivar_models: ModelDict = multivar_models,
     return_backtest_results: bool = False,
@@ -73,6 +96,16 @@ def _forecasting_pipeline(
         forecasting_periods (int): Forecasting periods
 
         models (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
+
+        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
+
+        fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
+
+        min_forecast (float | int | None): Minimum value to cap for forecast values (Default = 0)
+
+        max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
+
+        fcst_col_index (int): Index of the column of interest in foreasting (only applies if `series` is pd.DataFrame) (Default = 0 (first column))
 
         df_y_X (pd.DataFrame): A dataframe for multivariate forecast (Default = None)
             The dataframe must be preprocessed. The index is time period index.
@@ -163,6 +196,10 @@ def _forecasting_pipeline(
                     model_names=models_list,
                     series=series,
                     periods=forecasting_periods,
+                    min_data_points=min_data_points,
+                    fallback_model=fallback_model,
+                    min_forecast=min_forecast,
+                    max_forecast_factor=max_forecast_factor,
                 )
             else:
                 if multivar_models_exists:
@@ -173,6 +210,11 @@ def _forecasting_pipeline(
                         series=series,
                         df_y_X=df_y_X,
                         periods=forecasting_periods,
+                        min_data_points=min_data_points,
+                        fallback_model=fallback_model,
+                        min_forecast=min_forecast,
+                        max_forecast_factor=max_forecast_factor,
+                        fcst_col_index=fcst_col_index,
                     )
                 else:
                     forecast_results = ensemble_forecast(
@@ -180,6 +222,10 @@ def _forecasting_pipeline(
                         model_names=model_names_list,
                         series=series,
                         periods=forecasting_periods,
+                        min_data_points=min_data_points,
+                        fallback_model=fallback_model,
+                        min_forecast=min_forecast,
+                        max_forecast_factor=max_forecast_factor,
                     )
 
             df_forecast_results = pd.DataFrame(forecast_results)
@@ -198,92 +244,20 @@ def _forecasting_pipeline(
             print("Unexpected error occurred for ID:", e)
 
 
-@overload
 def run_forecasting_automation(
     df_raw: pd.DataFrame,
     date_col: str,
     value_col: str,
     data_period_date: pd.Period,
-    backtest_periods: int,
-    eval_periods: int,
-    top_n: int,
     forecasting_periods: int,
     id_cols: list[str] | None = None,
     id_join_char: str = "_",
-    min_cap: int | None = 0,
-    freq: str = "M",
-    agg_method: Literal["sum", "mean"] = "sum",
-    fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = fast_models,
-    df_X_raw: pd.DataFrame = None,
-    feature_cols: list[str] | None = None,
-    min_caps_X: float | int | dict[str, float | int] | None = 0,
-    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
-    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
-    multivar_models: ModelDict = multivar_models,
-    keep_eval_fixed: bool = False,
     return_backtest_results: bool = False,
-    parallel: bool = True,
-    n_jobs: int = -1,
-) -> pd.DataFrame: ...
-
-
-@overload
-def run_forecasting_automation(
-    df_raw: pd.DataFrame,
-    date_col: str,
-    value_col: str,
-    data_period_date: pd.Period,
-    backtest_periods: int,
-    eval_periods: int,
-    top_n: int,
-    forecasting_periods: int,
-    id_cols: list[str] | None = None,
-    id_join_char: str = "_",
-    min_cap: int | None = 0,
-    freq: str = "M",
-    agg_method: Literal["sum", "mean"] = "sum",
-    fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = fast_models,
-    df_X_raw: pd.DataFrame = None,
-    feature_cols: list[str] | None = None,
-    min_caps_X: float | int | dict[str, float | int] | None = 0,
-    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
-    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
-    multivar_models: ModelDict = multivar_models,
-    keep_eval_fixed: bool = False,
-    return_backtest_results: bool = True,
-    parallel: bool = True,
-    n_jobs: int = -1,
-) -> Tuple[pd.DataFrame, pd.DataFrame]: ...
-
-
-def run_forecasting_automation(
-    df_raw: pd.DataFrame,
-    date_col: str,
-    value_col: str,
-    data_period_date: pd.Period,
-    backtest_periods: int,
-    eval_periods: int,
-    top_n: int,
-    forecasting_periods: int,
-    id_cols: list[str] | None = None,
-    min_cap: int | None = 0,
-    freq: str = "M",
-    agg_method: Literal["sum", "mean"] = "sum",
-    fillna: Literal["bfill", "ffill"] | int | float = 0,
-    models: ModelDict = fast_models,
-    df_X_raw: pd.DataFrame = None,
-    feature_cols: list[str] | None = None,
-    min_caps_X: float | int | dict[str, float | int] | None = 0,
-    agg_methods_X: Literal["sum", "mean"] | dict[str, Literal["sum", "mean"]] = "sum",
-    fillna_X: Literal["bfill", "ffill"] | int | float = 0,
-    multivar_models: ModelDict = multivar_models,
-    keep_eval_fixed: bool = False,
-    return_backtest_results: bool = False,
-    parallel: bool = True,
-    n_jobs: int = -1,
-    id_join_char: str = "_",
+    dataproc_config: DataProcessingConfig | None = None,
+    forecasting_config: ForecastingConfig | None = None,
+    backtesting_config: BacktestingConfig | None = None,
+    multivar_config: MultiVarConfig | None = None,
+    multiproc_config: MultiProcessingConfig | None = None,
 ) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
     """Runs and returns forecast results for each ID
 
@@ -307,66 +281,91 @@ def run_forecasting_automation(
 
         date_period_date (pd.Period): Ending date for data to use for training
 
-        backtest_periods (int): Number of periods to back-test
-
-        eval_periods (int): Number of periods to evaluate in each rolling back-test
-            If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
-
-        top_n (int): Top N models to return
-
         forecasting_periods (int): Forecasting periods
 
         id_cols (list[str] | None): A list containing the column names to create a unique time-series ID (Default is None)
             If None, the whole dataframe is treated as a single time-series
             If a list of columns is passed in, a new "id" index will be created
 
-        min_cap (int | None): Minimum value to cap before forecast
-            If set, the value is used to set the minimum.
-            For example, you might want to set 0 for sales.
-            If None, use the existing values.
-
-        freq (str): Frequency to resample and forecast (Default = "M")
-
-        agg_methods (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
-
-        fillna (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
-            Method to fill missing values:
-            - int/float: Fill with a specific number (e.g., 0).
-            - "ffill": Forward fill.
-            - "bfill": Backward fill.
-
-        models: (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
-
-        df_X_raw (pd.DataFrame): Raw DF for external features that has a date column, other info, and the values to forecast (Default = None)
-
-        feature_cols (list[str]): List of feature columns (Default = None)
-
-        min_caps_X (float | int | dict[str, float | int] | None): Minimum value to cap before forecast
-            If set, the value is used to set the minimum.
-            For example, you might want to set 0 for sales.
-            If None, use the existing values.
-            It can also be a dictionary, e.g.,
-                min_caps = {"feature_1": 0}
-
-        agg_methods_X (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
-
-        fillna_X (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
-            Method to fill missing values:
-            - int/float: Fill with a specific number (e.g., 0).
-            - "ffill": Forward fill.
-            - "bfill": Backward fill.
-
-        multivar_models (ModelDict): A dictionary of multivariate models to use in forecasting (Default = multivar_models)
-
-        keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
+        id_join_char (str): A character to join multiple ID columns (Default = "_")
 
         return_backtest_results (bool): Whether or not to return the back-testing raw results (Default is False)
 
-        parallel (bool): Whether or not to utilise parallisation (Default is True)
+        dataproc_config (DataProcessingConfig | None): Data processing config
+            The settings are:
 
-        n_jobs (int): For parallel only, the number of jobs (Default = -1)
+            - freq (str): Frequency to resample and forecast (Default = "M")
 
-        id_join_char (str): A character to join multiple ID columns (Default = "_")
+            - min_cap (int | None): Minimum value to cap before forecast
+                If set, the value is used to set the minimum.
+                For example, you might want to set 0 for sales.
+                If None, use the existing values.
+
+            - agg_methods (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
+
+            - fillna (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
+                Method to fill missing values:
+                - int/float: Fill with a specific number (e.g., 0).
+                - "ffill": Forward fill.
+                - "bfill": Backward fill.
+
+        forecasting_config (ForecastingConfig | None): Forecasting config
+            The settings are:
+
+            - min_forecast (float | int | None): Minimum value to cap for forecast values (Default = 0)
+
+            - max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
+
+            - top_n (int): Top N models to return (Default = 3)
+
+            - models: (ModelDict): A dictionary of models to use in forecasting (Default = fast_models)
+
+            - min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
+
+            - fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
+
+            - fcst_col_index (int): Index of the column of interest in foreasting (only applies if `series` is pd.DataFrame) (Default = 0 (first column))
+
+        backtesting_config (BacktestingConfig | None): Back-testing config
+            The settings are:
+
+            - backtest_periods (int): Number of periods to back-test (Default = 1)
+
+            - eval_periods (int): Number of periods to evaluate in each rolling back-test (Default = 6)
+                If `eval_method`=="one-time", this argument is ignored, and `backtest_periods` will be used instead.
+
+            - keep_eval_fixed (bool): Whether or not to keep eval_periods fixed (Default = False)
+
+        multivar_config (MultiVarConfig | None): Multi-variate forecasting config
+            The settings are:
+
+            - df_X_raw (pd.DataFrame): Raw DF for external features that has a date column, other info, and the values to forecast
+
+            - feature_cols (list[str]): List of feature columns
+
+            - min_caps_X (float | int | dict[str, float | int] | None): Minimum value to cap before forecast (Default = 0)
+                If set, the value is used to set the minimum.
+                For example, you might want to set 0 for sales.
+                If None, use the existing values.
+                It can also be a dictionary, e.g.,
+                    min_caps = {"feature_1": 0}
+
+            - agg_methods_X (Literal["sum", "mean"]): String specifying aggregation method to value column (Default = "sum")
+
+            - fillna_X (Literal["bfill", "ffill"] | int | float): Method or number to fill missing values (Default = 0)
+                Method to fill missing values:
+                - int/float: Fill with a specific number (e.g., 0).
+                - "ffill": Forward fill.
+                - "bfill": Backward fill.
+
+            - multivar_models (ModelDict): A dictionary of multivariate models to use in forecasting (Default = multivar_models)
+
+        multiproc_config (MultiProcessingConfig | None): Multiprocessing config
+            The settings are:
+
+            - parallel (bool): Whether or not to utilise parallisation (Default is True)
+
+            - n_jobs (int): For parallel only, the number of jobs (Default = -1)
 
     Returns
     -------
@@ -375,27 +374,20 @@ def run_forecasting_automation(
         Tuple[pd.DataFrame, pd.DataFrame]: The ensemble forecast DataFrame and the back-testing raw results (when `return_backtest_results` = True)
     """
 
-    models = models.copy()
+    # Default config
+    dataproc_config = dataproc_config or DataProcessingConfig()
+    backtesting_config = backtesting_config or BacktestingConfig()
+    forecasting_config = forecasting_config or ForecastingConfig()
+    multiproc_config = multiproc_config or MultiProcessingConfig()
 
-    # If X is provided, features and multivar models must also be provided
-    X_cond = df_X_raw is not None
-    feat_cond = feature_cols is not None
-    multivar_models_cond = multivar_models is not None
-
-    # Check run multivariate
-    if X_cond:
-        if not feat_cond or not multivar_models_cond:
-            raise ValueError(
-                "`df_X_raw`, `feature_cols`, and `multivar_models` must all be provided for multivariate forecasting."
-            )
+    models = forecasting_config.models.copy()
 
     run_multivar = False
 
-    if X_cond and feat_cond and multivar_models_cond:
+    if multivar_config is not None:
         run_multivar = True
 
-    if run_multivar:
-        multivar_models = multivar_models.copy()
+    multivar_models = multivar_config.multivar_models.copy() if run_multivar else None
 
     def _fcst(series, df_y_X=None):  # Internal function for simplicity
         with warnings.catch_warnings():
@@ -403,15 +395,20 @@ def run_forecasting_automation(
             warnings.simplefilter("ignore")
             return _forecasting_pipeline(
                 series=series,
-                backtest_periods=backtest_periods,  # Constant
-                eval_periods=eval_periods,  # Constant
-                top_n=top_n,  # Constant
+                backtest_periods=backtesting_config.backtest_periods,  # Constant
+                eval_periods=backtesting_config.eval_periods,  # Constant
+                top_n=forecasting_config.top_n,  # Constant
                 forecasting_periods=forecasting_periods,  # Constant
                 models=models,  # Constant
+                min_data_points=forecasting_config.min_data_points,
+                fallback_model=forecasting_config.fallback_model,
+                min_forecast=forecasting_config.min_forecast,
+                max_forecast_factor=forecasting_config.max_forecast_factor,
+                fcst_col_index=forecasting_config.fcst_col_index,
                 df_y_X=df_y_X,
                 multivar_models=multivar_models,  # Constant
                 return_backtest_results=return_backtest_results,  # Constant
-                keep_eval_fixed=keep_eval_fixed,  # Constant
+                keep_eval_fixed=backtesting_config.keep_eval_fixed,  # Constant
             )
 
     timeseries: dict[str, pd.Series] = prepare_timeseries(
@@ -420,29 +417,29 @@ def run_forecasting_automation(
         value_col=value_col,
         data_period_date=data_period_date,
         id_cols=id_cols,
-        min_cap=min_cap,
-        freq=freq,
-        agg_method=agg_method,
-        fillna=fillna,
+        min_cap=dataproc_config.min_cap,
+        freq=dataproc_config.freq,
+        agg_method=dataproc_config.agg_method,
+        fillna=dataproc_config.fillna,
         id_join_char=id_join_char,
     )
 
     if run_multivar:
         df_multivar: dict[str, pd.DataFrame] = prepare_multivar_timeseries(
             df_raw=df_raw,
-            df_X_raw=df_X_raw,
+            df_X_raw=multivar_config.df_X_raw,
             date_col=date_col,
             value_col=value_col,
-            feature_cols=feature_cols,
+            feature_cols=multivar_config.feature_cols,
             data_period_date=data_period_date,
             id_cols=id_cols,
-            min_cap=min_cap,
-            min_caps_X=min_caps_X,
-            freq=freq,
-            agg_method=agg_method,
-            agg_methods_X=agg_methods_X,
-            fillna=fillna,
-            fillna_X=fillna_X,
+            min_cap=dataproc_config.min_cap,
+            min_caps_X=multivar_config.min_caps_X,
+            freq=dataproc_config.freq,
+            agg_method=dataproc_config.agg_method,
+            agg_methods_X=multivar_config.agg_methods_X,
+            fillna=dataproc_config.fillna,
+            fillna_X=multivar_config.fillna_X,
             id_join_char=id_join_char,
         )
 
@@ -455,8 +452,8 @@ def run_forecasting_automation(
         timeseries_list = [(v, df_multivar.get(k, None)) for k, v in timeseries.items()]
 
     # Check if run in parallel
-    if parallel:
-        results_list = Parallel(n_jobs=n_jobs)(
+    if multiproc_config.parallel:
+        results_list = Parallel(n_jobs=multiproc_config.n_jobs)(
             (delayed(_fcst)(series, df_y_X)) for series, df_y_X in timeseries_list
         )
 

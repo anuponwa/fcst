@@ -59,19 +59,18 @@ df_input = pd.read_csv("path-to-your/file.csv")
 
 data_period_date = pd.Period("2025-02", freq="M")
 
+# Can support multivariate forecasting
+# Just pass in the config
+multivar_config = MultiVarConfig(df_X_raw=df_X, feature_cols=["feature_1", "feature_2", "feature_3"])
+
 results = run_forecasting_automation(
-    df_raw=df_input,
+    df_raw=df_y,
+    value_col="y",
     date_col="date",
-    value_col="net_amount",
     data_period_date=data_period_date,
-    backtest_periods=3,
-    eval_periods=2,
-    top_n = 2,
-    forecasting_periods=2,
-    id_cols=["customer_code", "product_code"],  # In case the unit of analysis is: customer, product
-    min_cap=0,  # clean the value for some rows that have < 0
-    freq="M",  # Monthly forecast
-    parallel=True,
+    forecasting_periods=5,
+    id_cols=["id"],
+    multivar_config=multivar_config,
 )
 
 # Do something with the results
@@ -79,9 +78,13 @@ def format_and_upload_results(df_results):
     ...
 ```
 
+There are main configs you can customise...
+
 ```python
-from fcst.automation import run_forecasting_automation
-import pandas as pd
+from fcst.common.configs import ForecastingConfig, BacktestingConfig
+
+forecasting_config = ForecastingConfig(top_n=2)
+backtesting_config = BacktestingConfig(backtesting_periods=3, eval_periods=4)
 
 
 df_input = pd.read_csv("path-to-your/file.csv")
@@ -89,18 +92,14 @@ df_input = pd.read_csv("path-to-your/file.csv")
 data_period_date = pd.Period("2025-02", freq="M")
 
 results = run_forecasting_automation(
-    df_raw=df_input,
+    df_raw=df_y,
+    value_col="y",
     date_col="date",
-    value_col="net_amount",
     data_period_date=data_period_date,
-    backtest_periods=3,
-    eval_periods=2,
-    top_n = 2,
-    forecasting_periods=2,
-    id_cols=None,  # In case you want to predict the whold dataframe
-    min_cap=0,  # clean the value for some rows that have < 0
-    freq="M",  # Monthly forecast
-    parallel=True,
+    forecasting_periods=5,
+    id_cols=["id"],
+    forecasting_config=forecasting_config,
+    backtesting_config=backtesting_config
 )
 
 # Do something with the results
@@ -121,6 +120,10 @@ timeseries = prepare_timeseries(
     value_col="net_amount",
     data_period_date=data_period_date,
     id_cols=["customer_code", "product_code"],
+    min_cap=0,
+    freq="M",
+    agg_method="sum",
+    fillna=0,
 )
 
 
@@ -131,13 +134,12 @@ timeseries = prepare_timeseries(
     value_col="net_amount",
     data_period_date=data_period_date,
     id_cols=None,
+    min_cap=0,
+    freq="M",
+    agg_method="sum",
+    fillna=0,
 )
 ```
-
-There are also these two functions from sub-modules, if you want to explore:
-* `from fcst.preprocessing.dataframe import prepare_forecasting_df`
-* `from fcst.preprocessing.timeseries import extract_timeseries`
-
 
 ## More detailed usage
 
@@ -151,25 +153,25 @@ This `automation` sub-module runs cleaning, fill-in the missing dates, evaluatio
 This provides time-series preparation functions. The most complete function and does most of the heavy lifting is `prepare_timeseries()` function.
 You can import it from `from fcst.preprocessing import prepare_timeseries`.
 You can specify ID columns, date column, value column to forecast, the frequency, and much more.
-This function returns either a single time-series or a generator, depending on the `id_cols` parameter.
-
-If you want to go into details or want full control in each step, you can use these two functions:
-* `from fcst.preprocessing.dataframe import prepare_forecasting_df`
-* `from fcst.preprocessing.timeseries import extract_timeseries`
+This function returns a dictionary where the keys are time-series IDs and the values are the corresponding time-series.
 
 
 ### Models
 
 By default the `run_forecasting_automation()` uses `base_models` from `models`.
 But you can define your own model(s) with `fit()` and `predict()` methods.
-You can get the `base_model` and put your own model(s) to the dictionary.
+You can get the `base_models`, `fast_models`, `all_models`, or `multivar_models` and put your own model(s) to the dictionary.
 
 
 ### Metrics
 
-By default, we use `mape()` for measuring accuracy (error) of forecasting models.
+By default, we use `smape()` for measuring accuracy (error) of forecasting models.
 We define our own as it handles when the forecast or actual values are 0.
-Our `mape()` function also has `symmetric` flag to calculate the sMAPE.
+There are other metrics as well such as:
+    - `mape()`
+    - `mae()`
+    - `mse()`
+    - `rmse()`
 
 
 ### Horizon

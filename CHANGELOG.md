@@ -1,5 +1,15 @@
 # Change log
 
+## 0.8.0
+* Re-design the library
+* Automation config revamp
+* Add parameters for more custimisation
+* Fully support multi-variate forecasting along side with univariate
+* Add more metrics
+
+**Breaking changes**
+* Everything, from module, names, functions, and arguments
+
 ## 0.7.0
 * Re-design the back-test functions
 

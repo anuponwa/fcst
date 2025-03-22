@@ -140,7 +140,7 @@ def backtest_evaluate(
             return model_results, pd.DataFrame()
 
         return model_results
-    
+
     if isinstance(series, pd.Series):
         true_series = series.copy()
     elif isinstance(series, pd.DataFrame):

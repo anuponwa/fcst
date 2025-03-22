@@ -3,7 +3,8 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 
-from ..common.types import ModelDict
+from ..common.types import Forecaster, ModelDict
+from ..models._models import MeanDefaultForecaster
 from .forecasting import forecast
 
 
@@ -13,6 +14,10 @@ def ensemble_forecast(
     series: pd.Series,
     periods: int,
     forecast_col: str = "forecast",
+    min_data_points: int = 3,
+    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
 ) -> pd.Series:
     """Forecasts the series using an ensemble method
 
@@ -34,6 +39,14 @@ def ensemble_forecast(
 
         forecast_col (str): The column name for the output forecast (Default is "forecast")
 
+        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
+
+        fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
+
+        min_forecast (float | int | None): Set a minimum forecast (Default = 0)
+
+        max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
+
     Returns
     -------
         pd.Series[float]: Future time horizon depending on the series' end date and `periods`
@@ -51,7 +64,16 @@ def ensemble_forecast(
     forecast_results = []
 
     for model in model_names:
-        model_output = forecast(model=models[model], series=series, periods=periods)
+        model_output = forecast(
+            model=models[model],
+            series=series,
+            periods=periods,
+            forecast_col=forecast_col,
+            min_data_points=min_data_points,
+            fallback_model=fallback_model,
+            min_forecast=min_forecast,
+            max_forecast_factor=max_forecast_factor,
+        )
         forecast_results.append(model_output)
 
     predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
@@ -69,7 +91,12 @@ def _ensemble_forecast_X(
     series: pd.Series,
     df_y_X: pd.DataFrame,
     periods: int,
+    min_data_points: int = 3,
+    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
+    min_forecast: float | int | None = 0,
+    max_forecast_factor: float | int | None = 2.5,
     forecast_col: str = "forecast",
+    fcst_col_index: int = 0,
 ) -> pd.Series:
     """Forecasts the series using an ensemble method
 
@@ -98,7 +125,17 @@ def _ensemble_forecast_X(
 
         periods (int): Forecasting periods
 
+        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
+
+        fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
+
+        min_forecast (float | int | None): Set a minimum forecast (Default = 0)
+
+        max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
+
         forecast_col (str): The column name for the output forecast (Default is "forecast")
+
+        fcst_col_index (int): Index of the column of interest in foreasting (only applies if `series` is pd.DataFrame) (Default = 0 (first column))
 
     Returns
     -------
@@ -127,12 +164,25 @@ def _ensemble_forecast_X(
     forecast_results = []
 
     for model in uni_model_names:
-        model_output = forecast(model=models[model], series=series, periods=periods)
+        model_output = forecast(
+            model=models[model],
+            series=series,
+            periods=periods,
+            min_data_points=min_data_points,
+            fallback_model=fallback_model,
+            min_forecast=min_forecast,
+            max_forecast_factor=max_forecast_factor,
+        )
         forecast_results.append(model_output)
 
     for model in multi_model_names:
         model_output = forecast(
-            model=multivar_models[model], series=df_y_X, periods=periods
+            model=multivar_models[model],
+            series=df_y_X,
+            periods=periods,
+            min_forecast=min_forecast,
+            max_forecast_factor=max_forecast_factor,
+            fcst_col_index=fcst_col_index,
         )
         forecast_results.append(model_output)
 
