@@ -30,7 +30,7 @@ from sktime.forecasting.vecm import VECM
 from ..common.types import ModelDict
 from ._models import EMA, MeanDefaultForecaster, ZeroForecaster
 from .autots import AutoTSWrapper
-from .multivar import MultivariateModelWrapper
+from .multivar import MultivariateModelWrapper, MeanDefaultMultiVar
 
 base_models: ModelDict = {
     "AutoETS": AutoETS(auto=True),
@@ -253,4 +253,5 @@ multivar_models = {
     "MultiX_ARDL_L6_ct_s": MultivariateModelWrapper(
         ARDL_Sk(lags=6, trend="ct", seasonal=True, auto_ardl=False), val_col=0
     ),
+    "MeanDefault": MeanDefaultMultiVar(window=3, val_col=0),
 }

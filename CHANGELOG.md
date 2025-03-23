@@ -1,5 +1,11 @@
 # Change log
 
+## 0.8.1
+* Remove debugging prints
+* Add row-wise metrics
+* Add `MeanDefault` model in multi-variate forecasting
+* Fix `MeanDefault` bug in multi-variate forecasting
+
 ## 0.8.0
 * Re-design the library
 * Automation config revamp

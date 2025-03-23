@@ -61,3 +61,46 @@ def rmse(
     """Returns root mean squared error (RMSE)"""
 
     return np.sqrt(mse(y_true, y_pred))
+
+
+# Row-wise
+
+def mae_row(
+    y_true: pd.Series | np.ndarray,
+    y_pred: pd.Series | np.ndarray,
+):
+    """Returns row-wise absolute error"""
+
+    abs_error = np.fabs(y_true - y_pred)
+
+    return abs_error
+
+
+def mape_row(
+    y_true: pd.Series | np.ndarray,
+    y_pred: pd.Series | np.ndarray,
+):
+    """Returns row-wise mean absolute percentage error (MAPE)"""
+
+    abs_error = np.fabs(y_true - y_pred)
+
+    arr_metric = abs_error / y_true
+    arr_metric[(y_true == 0) & (y_pred != 0)] = 1
+    arr_metric[(y_true == 0) & (y_pred == 0)] = 0
+
+    return arr_metric
+
+
+def smape_row(
+    y_true: pd.Series | np.ndarray,
+    y_pred: pd.Series | np.ndarray,
+):
+    """Returns row-wise symmetric mean absolute percentage error (SMAPE)"""
+
+    abs_error = np.fabs(y_true - y_pred)
+
+    arr_metric = (2 * abs_error) / (y_true + y_pred)
+    arr_metric[(y_true == 0) | (y_pred == 0)] = 1
+    arr_metric[(y_true == 0) & (y_pred == 0)] = 0
+
+    return arr_metric

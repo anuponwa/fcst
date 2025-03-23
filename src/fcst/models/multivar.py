@@ -1,8 +1,9 @@
 import pandas as pd
 from sktime.forecasting.base import ForecastingHorizon
+from ..common.types import Forecaster
 
 
-class MultivariateModelWrapper:
+class MultivariateModelWrapper(Forecaster):
     def __init__(self, model_cls_instance, val_col: int | str | None = 0):
         """Generic wrapper for multi-variate models.
 
@@ -57,3 +58,45 @@ class MultivariateModelWrapper:
             return self.df_pred[col]
 
         return self.df_pred
+
+
+class MeanDefaultMultiVar(Forecaster):
+    """Averages the latest `window` values"""
+
+    def __init__(self, window: int = 3, val_col: int | str | None = 0):
+        self.window = window
+        self.val_col = val_col
+        self.mean_val = 0
+        self.fh = None
+
+    def fit(self, y: pd.DataFrame, X=None, fh: ForecastingHorizon = None):
+        self.mean_val = y.iloc[-self.window :].mean()
+        if fh is not None:
+            self.fh = fh
+
+        self.cutoff = y.index.max()
+
+        return self
+
+    def predict(
+        self, fh: ForecastingHorizon = None, X=None
+    ) -> pd.Series | pd.DataFrame:
+        if self.fh is None and fh is None:
+            raise ValueError("`fh` must be passed in either in `fit()` or `predict()`")
+
+        if fh is not None:
+            self.fh = fh
+
+        index = self.fh.to_absolute_index(cutoff=self.cutoff)
+
+        if self.val_col is not None:
+            if isinstance(self.val_col, int):
+                col = self.mean_val.columns[self.val_col]
+            if isinstance(self.val_col, str):
+                col = self.val_col
+
+            return pd.Series(self.mean_val[col], index=index)
+
+        return pd.DataFrame(
+            {col: self.mean_val[col] for col in self.mean_val.index}, index=index
+        )

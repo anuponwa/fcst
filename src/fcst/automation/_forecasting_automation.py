@@ -176,8 +176,6 @@ def _forecasting_pipeline(
 
                 model_results = {**model_results, **model_results_multi}
 
-                print(model_results)
-
             models_list = select_best_models(model_results=model_results, top_n=top_n)
 
             multivar_models_exists = True
