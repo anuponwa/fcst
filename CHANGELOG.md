@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.4
+* Fix bug in `MeanDefaultMultiVar`
+
 ## 0.8.3
 * Change multi-variate preprocessing to *left join* the external features to the main series and fill missing values using `fillna_X`
 

@@ -70,6 +70,7 @@ class MeanDefaultMultiVar(Forecaster):
         self.fh = None
 
     def fit(self, y: pd.DataFrame, X=None, fh: ForecastingHorizon = None):
+        self.y = y
         self.mean_val = y.iloc[-self.window :].mean()
         if fh is not None:
             self.fh = fh
@@ -91,7 +92,7 @@ class MeanDefaultMultiVar(Forecaster):
 
         if self.val_col is not None:
             if isinstance(self.val_col, int):
-                col = self.mean_val.columns[self.val_col]
+                col = self.y.columns[self.val_col]
             if isinstance(self.val_col, str):
                 col = self.val_col
 
