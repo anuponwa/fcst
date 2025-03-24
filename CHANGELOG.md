@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.5
+* Handle `NaN` values in ensemble forecast
+
 ## 0.8.4
 * Fix bug in `MeanDefaultMultiVar`
 

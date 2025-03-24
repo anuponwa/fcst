@@ -76,9 +76,14 @@ def ensemble_forecast(
         )
         forecast_results.append(model_output)
 
+    # predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
+    #     np.mean, axis=1
+    # )
+
     predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-        np.mean, axis=1
+        lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
     )
+
     predictions = predictions.rename(forecast_col)
 
     return predictions
@@ -186,9 +191,14 @@ def _ensemble_forecast_X(
         )
         forecast_results.append(model_output)
 
+    # predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
+    #     np.mean, axis=1
+    # )
+
     predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-        np.mean, axis=1
+        lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
     )
+
     predictions = predictions.rename(forecast_col)
 
     return predictions
