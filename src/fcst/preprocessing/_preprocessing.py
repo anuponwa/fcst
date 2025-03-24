@@ -383,7 +383,16 @@ def prepare_multivar_timeseries(
         join_char="_",
     )
 
-    df_total = df_y.merge(df_X, left_index=True, right_index=True, how="inner")
+    df_total = df_y.merge(df_X, left_index=True, right_index=True, how="left")
+
+    # Fill NA values for the missing external features
+    if fillna_X in ["bfill", "ffill"]:
+        if fillna_X == "bfill":
+            df_total = df_total.bfill()
+        elif fillna_X == "ffill":
+            df_total = df_total.ffill()
+    else:
+        df_total = df_total.fillna(fillna_X)
 
     ret_dict = {}
     unique_ids = df_total.index.get_level_values(0).unique()
