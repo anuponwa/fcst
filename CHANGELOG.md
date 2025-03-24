@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.2
+* Adjust the `model_selection` behavior to filter out `NaN` results before sorting
+
 ## 0.8.1
 * Remove debugging prints
 * Add row-wise metrics

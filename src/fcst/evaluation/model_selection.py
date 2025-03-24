@@ -1,5 +1,7 @@
 from typing import Tuple
 
+import numpy as np
+
 from ..common.types import ModelResults
 
 
@@ -23,15 +25,32 @@ def select_best_models(
             A list of Top N model names with their tag
     """
 
-    model_results = dict(sorted(model_results.items(), key=lambda x: x[1]))
-
+    # Check type
     a_value = list(model_results.values())[0]
-
     # No tag
     if isinstance(a_value, float | int):
+        no_tag = True
+    else:
+        no_tag = False
+
+    # Filter out nan
+    # No tag
+    if no_tag:
+        model_results = dict(filter(lambda x: ~np.isnan(x[1]), model_results.items()))
+
+    # With tag
+    else:
+        model_results = dict(
+            filter(lambda x: ~np.isnan(x[1][0]), model_results.items())
+        )
+
+    model_results = dict(sorted(model_results.items(), key=lambda x: x[1]))
+
+    # No tag
+    if no_tag:
         return list(model_results.keys())[:top_n]
 
     # With tag
-    elif isinstance(a_value, tuple):
+    else:
         results_list = [(k, v[1]) for k, v in model_results.items()]
         return results_list[:top_n]
