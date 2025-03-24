@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.7
+* Fix bug, now use `MeanDefault` from univariate only
+
 ## 0.8.6
 * Remove `MeanDefault` from multi-variate back-testing results
 

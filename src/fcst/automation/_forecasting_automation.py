@@ -173,10 +173,10 @@ def _forecasting_pipeline(
                 model_results_multi = {
                     k: (v, "2_multi")
                     for k, v in model_results_multi.items()
-                    if v != "MeanDefault"  # Remove MeanDefault from multivar
+                    if k != "MeanDefault"  # Remove MeanDefault from multivar
                 }
 
-                model_results = {**model_results, **model_results_multi}
+                model_results = {**model_results_multi, **model_results}
 
             models_list = select_best_models(model_results=model_results, top_n=top_n)
 
