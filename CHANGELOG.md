@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.8
+* Fix missing output time-series in some cases where the model errors in ensembling
+
 ## 0.8.7
 * Fix bug, now use `MeanDefault` from univariate only
 

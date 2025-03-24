@@ -196,7 +196,6 @@ def _forecasting_pipeline(
                     model_names=models_list,
                     series=series,
                     periods=forecasting_periods,
-                    min_data_points=min_data_points,
                     fallback_model=fallback_model,
                     min_forecast=min_forecast,
                     max_forecast_factor=max_forecast_factor,
@@ -210,7 +209,6 @@ def _forecasting_pipeline(
                         series=series,
                         df_y_X=df_y_X,
                         periods=forecasting_periods,
-                        min_data_points=min_data_points,
                         fallback_model=fallback_model,
                         min_forecast=min_forecast,
                         max_forecast_factor=max_forecast_factor,
@@ -222,7 +220,6 @@ def _forecasting_pipeline(
                         model_names=model_names_list,
                         series=series,
                         periods=forecasting_periods,
-                        min_data_points=min_data_points,
                         fallback_model=fallback_model,
                         min_forecast=min_forecast,
                         max_forecast_factor=max_forecast_factor,
@@ -400,7 +397,6 @@ def run_forecasting_automation(
                 top_n=forecasting_config.top_n,  # Constant
                 forecasting_periods=forecasting_periods,  # Constant
                 models=models,  # Constant
-                min_data_points=forecasting_config.min_data_points,
                 fallback_model=forecasting_config.fallback_model,
                 min_forecast=forecasting_config.min_forecast,
                 max_forecast_factor=forecasting_config.max_forecast_factor,

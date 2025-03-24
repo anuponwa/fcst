@@ -163,7 +163,7 @@ def backtest_evaluate(
         eval_periods: int,
     ):
         backtest_data_date = backtest_series.index.max()
-        test_output = forecast(model, backtest_series, periods=eval_periods)
+        test_output = forecast(model=model, series=backtest_series, periods=eval_periods)
         df_eval = pd.concat([test_output, true_series], axis=1, join="inner")
         df_eval["backtest_data_date"] = backtest_data_date
         df_eval["model_name"] = model_name

@@ -70,13 +70,6 @@ class ForecastingConfig:
         metadata={"help": "A dictionary of models to use in forecasting"},
     )
 
-    min_data_points: int = field(
-        default=3,
-        metadata={
-            "help": "Minimum data points the series must have to forecast using the model"
-        },
-    )
-
     fallback_model: Forecaster = field(
         default=MeanDefaultForecaster(window=3),
         metadata={

@@ -1,7 +1,6 @@
 import pandas as pd
 
 from fcst.horizon import get_future_forecast_horizon
-from ..models._models import MeanDefaultForecaster
 from ..common.types import Forecaster
 
 
@@ -10,8 +9,6 @@ def forecast(
     series: pd.Series | pd.DataFrame,
     periods: int,
     forecast_col: str = "forecast",
-    min_data_points: int = 3,
-    fallback_model: Forecaster = MeanDefaultForecaster(window=3),
     min_forecast: float | int | None = 0,
     max_forecast_factor: float | int | None = 2.5,
     fcst_col_index: int = 0,
@@ -32,10 +29,6 @@ def forecast(
 
         forecast_col (str): The column name for the output forecast (Default is "forecast")
 
-        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
-
-        fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
-
         min_forecast (float | int | None): Set a minimum forecast (Default = 0)
 
         max_forecast_factor (float | int | None): The factor of maximum forecast relative to the maximum history (Default = 2.5)
@@ -52,12 +45,10 @@ def forecast(
 
     data_end_date = series.index.max()  # Get the latest date from the series
 
-    if len(series) < min_data_points:  # if N data points too low, use mean
-        model = fallback_model
-
     fh = get_future_forecast_horizon(data_end_date, periods)
     model.fit(series, fh=fh)
     predictions = model.predict()
+
     # Rename the series name
     predictions = predictions.rename(forecast_col)
 

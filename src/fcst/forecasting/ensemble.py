@@ -14,7 +14,6 @@ def ensemble_forecast(
     series: pd.Series,
     periods: int,
     forecast_col: str = "forecast",
-    min_data_points: int = 3,
     fallback_model: Forecaster = MeanDefaultForecaster(window=3),
     min_forecast: float | int | None = 0,
     max_forecast_factor: float | int | None = 2.5,
@@ -39,8 +38,6 @@ def ensemble_forecast(
 
         forecast_col (str): The column name for the output forecast (Default is "forecast")
 
-        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
-
         fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
 
         min_forecast (float | int | None): Set a minimum forecast (Default = 0)
@@ -64,25 +61,34 @@ def ensemble_forecast(
     forecast_results = []
 
     for model in model_names:
-        model_output = forecast(
-            model=models[model],
+        try:
+            model_output = forecast(
+                model=models[model],
+                series=series,
+                periods=periods,
+                forecast_col=forecast_col,
+                min_forecast=min_forecast,
+                max_forecast_factor=max_forecast_factor,
+            )
+
+        except Exception as e:  # Skip problematic model
+            continue
+
+        forecast_results.append(model_output)
+
+    if len(forecast_results) == 0:
+        predictions = forecast(
+            model=fallback_model,
             series=series,
             periods=periods,
             forecast_col=forecast_col,
-            min_data_points=min_data_points,
-            fallback_model=fallback_model,
             min_forecast=min_forecast,
             max_forecast_factor=max_forecast_factor,
         )
-        forecast_results.append(model_output)
-
-    # predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-    #     np.mean, axis=1
-    # )
-
-    predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-        lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
-    )
+    else:
+        predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
+            lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
+        )
 
     predictions = predictions.rename(forecast_col)
 
@@ -96,7 +102,6 @@ def _ensemble_forecast_X(
     series: pd.Series,
     df_y_X: pd.DataFrame,
     periods: int,
-    min_data_points: int = 3,
     fallback_model: Forecaster = MeanDefaultForecaster(window=3),
     min_forecast: float | int | None = 0,
     max_forecast_factor: float | int | None = 2.5,
@@ -129,8 +134,6 @@ def _ensemble_forecast_X(
             Use prepare or extract timeseries from `preprocessing` module.
 
         periods (int): Forecasting periods
-
-        min_data_points (int): Minimum data points the series must have to forecast using the model (Default is 3)
 
         fallback_model (Forecaster): A model used as a fall-back when the number of data points is too low (Default to Mean)
 
@@ -173,8 +176,6 @@ def _ensemble_forecast_X(
             model=models[model],
             series=series,
             periods=periods,
-            min_data_points=min_data_points,
-            fallback_model=fallback_model,
             min_forecast=min_forecast,
             max_forecast_factor=max_forecast_factor,
         )
@@ -191,13 +192,20 @@ def _ensemble_forecast_X(
         )
         forecast_results.append(model_output)
 
-    # predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-    #     np.mean, axis=1
-    # )
 
-    predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
-        lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
-    )
+    if len(forecast_results) == 0:
+        predictions = forecast(
+            model=fallback_model,
+            series=series,
+            periods=periods,
+            forecast_col=forecast_col,
+            min_forecast=min_forecast,
+            max_forecast_factor=max_forecast_factor,
+        )
+    else:
+        predictions = pd.concat(forecast_results, join="inner", axis=1).apply(
+            lambda x: np.nanmean(x) if not np.all(np.isnan(x)) else 0, axis=1
+        )
 
     predictions = predictions.rename(forecast_col)
 

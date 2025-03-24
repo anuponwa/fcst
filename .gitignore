@@ -18,3 +18,4 @@ secrets
 
 # local debug tests
 test.py
+test-dura.py
