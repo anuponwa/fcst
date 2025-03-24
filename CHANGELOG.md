@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.6
+* Remove `MeanDefault` from multi-variate back-testing results
+
 ## 0.8.5
 * Handle `NaN` values in ensemble forecast
 

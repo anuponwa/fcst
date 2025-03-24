@@ -171,7 +171,9 @@ def _forecasting_pipeline(
                 # Append tags so we know which models are uni or multivariate
                 model_results = {k: (v, "1_uni") for k, v in model_results.items()}
                 model_results_multi = {
-                    k: (v, "2_multi") for k, v in model_results_multi.items()
+                    k: (v, "2_multi")
+                    for k, v in model_results_multi.items()
+                    if v != "MeanDefault"  # Remove MeanDefault from multivar
                 }
 
                 model_results = {**model_results, **model_results_multi}
