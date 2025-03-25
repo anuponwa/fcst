@@ -101,6 +101,17 @@ def prepare_forecasting_df(
 
     df_raw = df_raw.copy()
 
+    if id_cols and (
+        df_raw[id_cols]
+        .astype(str)
+        .apply(lambda col: col.str.contains(join_char, na=False))
+        .any()
+        .any()
+    ):
+        raise ValueError(
+            f"join_char '{join_char}' exists in one or more ID column values, making it impossible to unjoin later. Use another character."
+        )
+
     # Prepare columns
     df_raw[date_col] = pd.PeriodIndex(df_raw[date_col], freq=freq)
     df_raw[value_col] = df_raw[value_col].astype(float)
@@ -278,6 +289,17 @@ def prepare_X_df(
     """
 
     df_raw = df_raw.copy()
+
+    if id_cols and (
+        df_raw[id_cols]
+        .astype(str)
+        .apply(lambda col: col.str.contains(join_char, na=False))
+        .any()
+        .any()
+    ):
+        raise ValueError(
+            f"join_char '{join_char}' exists in one or more ID column values, making it impossible to unjoin later. Use another character."
+        )
 
     # Convert date column to PeriodIndex
     df_raw[date_col] = pd.PeriodIndex(df_raw[date_col], freq=freq)

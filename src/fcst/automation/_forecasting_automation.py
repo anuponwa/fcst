@@ -492,9 +492,18 @@ def run_forecasting_automation(
         map(_get_df_forecasting_from_each_result, results_filtered)
     )
 
+    df_forecast_results = df_forecast_results.reset_index(names="date")
+    df_forecast_results[id_cols] = df_forecast_results["id"].split(
+        id_join_char, expand=True
+    )
+
     if return_backtest_results:
         df_backtest_results = pd.concat(
             map(_get_df_backtest_from_each_result, results_filtered)
+        )
+        df_backtest_results = df_backtest_results.reset_index(names="date")
+        df_backtest_results[id_cols] = df_backtest_results["id"].split(
+            id_join_char, expand=True
         )
         return df_forecast_results, df_backtest_results
 

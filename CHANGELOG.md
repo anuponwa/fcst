@@ -1,5 +1,11 @@
 # Change log
 
+## 0.8.9
+* Add check for `id_join_char` if it exists in the columns before joining
+* Add `allocate` module and provide `allocate_forecast()` function
+* Expose row-wise metrics
+* Reformat the output of forecasts and backtest results (reindex and split the id columns for the users)
+
 ## 0.8.8
 * Fix missing output time-series in some cases where the model errors in ensembling
 
