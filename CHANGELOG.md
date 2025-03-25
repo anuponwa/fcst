@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.11
+* Fix bug in splitting ID of bactesting results back to columns in automation
+
 ## 0.8.10
 * Fix bug in splitting ID back to columns in automation
 

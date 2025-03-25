@@ -502,7 +502,7 @@ def run_forecasting_automation(
             map(_get_df_backtest_from_each_result, results_filtered)
         )
         df_backtest_results = df_backtest_results.reset_index(names="date")
-        df_backtest_results[id_cols] = df_backtest_results["id"].split(
+        df_backtest_results[id_cols] = df_backtest_results["id"].str.split(
             id_join_char, expand=True
         )
         return df_forecast_results, df_backtest_results
