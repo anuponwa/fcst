@@ -493,7 +493,7 @@ def run_forecasting_automation(
     )
 
     df_forecast_results = df_forecast_results.reset_index(names="date")
-    df_forecast_results[id_cols] = df_forecast_results["id"].split(
+    df_forecast_results[id_cols] = df_forecast_results["id"].str.split(
         id_join_char, expand=True
     )
 

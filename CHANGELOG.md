@@ -1,5 +1,8 @@
 # Change log
 
+## 0.8.10
+* Fix bug in splitting ID back to columns in automation
+
 ## 0.8.9
 * Add check for `id_join_char` if it exists in the columns before joining
 * Add `allocate` module and provide `allocate_forecast()` function
